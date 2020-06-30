@@ -163,6 +163,15 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 			final ArgumentParser parser) throws LDAPException {
 		serverContext.debugInfo("Beginning plugin initialization");
 
+		final StringArgument arg1 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_CA_LOCATION);
+		this.keystoreRootCAFileLocation = arg1.getValue();
+
+		final StringArgument arg2 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_LOCATION);
+		this.keystoreFileLocation = arg2.getValue();
+
+		final StringArgument arg3 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_PASSWORD);
+		this.keystorePassword = arg3.getValue();
+
 		this.serverContext = serverContext;
 
 	}
@@ -314,6 +323,16 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		return parent;
 	}
 
+	public static void main(String [] args) throws Exception
+	{
+		String clientId = "dcr-6ef933ab-06d2-34eb-8999-6492b62d959d";
+		String code = "T492a0CB6R9b4I0wMw5_kcMC1CkDtFdqSu204MJ9";
+		Security.addProvider(new BouncyCastleProvider());
+
+		String jwk = "{ \"p\":\"u84wyR3hgiwNQab4Xu1KhqYVWuiBOrQ7AiEft8Quv_1Oo-OR9ikdfda5ovgE-3DV432KZ6DKtzOayRmhr8u7QW1AXkCqRPpPx4gbEwmxDRqL6q3SBW8SE2wb92u6LxCA3pRNx9a0Rh2VvaUlcmGjC9c8fJAiOVJOLIjl9BqCHz0\", \"kty\":\"RSA\", \"q\":\"sbxbqU2WXjz4ceCDvUXjc6ShFGld8toYY1MCLYoE74fenL0ayo8IgtEcXj59zKgSEsi5rvXLXT2AhbotWeqxJW6EuDGjOVlx3EDLBGw2oOqv-mJmgVEB6BsREGq74D0ZZxiV_DW4csFfEV8W2Zdjx3-Rqa9VhxlVZ9Y_6FT9Ehs\", \"d\":\"Dp6IVm2GI3tZbqZ9pA9OwC_7P89dH3gd-PiQ0y1zzr5N7GXnJjbQVkcUGoquy49otT_sY5qNuwWew2eez5_h3viBju-lNIO1A6fGw8Aqk-VMnXJdgZWg3BZx0hMOto7pZs_JpEM6OgEfm9EoD_SuT_aZTszlz135AnmYoeEgJEk-YnaOCmTEgecofFC4GLR08wKSVO2BMJ-XTLDXRDM35WlBruRn-7mDFX2LAoLmkaImy17T-Eaw06Wz78meZYK-Gu9OYzprOBUe3vpy9FZnGICrW_PVsq__U5kRy-OyBchy1m1Ry_q5kfeCuKyFrAI8jicFo7bhbBmChEtLWZwA4Q\", \"e\":\"AQAB\", \"use\":\"sig\", \"kid\":\"f8c152af-0646-491e-9144-3f22f0d51dd8\", \"qi\":\"pnoEGJtJTgBMXwyPOp5GSWnjl2S1wZ3eU8vx30zHzHG-p_61YTWHLJkkPGQVbsU2JEAD14JVQ0mEgGJ05qN6DngCGIOGHkXL5DXx6sQZ52UIZZUKH833nL1AP5DNIho08cZyWFWaum8KqqfIURaRkT8B-FbEbgCeJP-iFemyDus\", \"dp\":\"O8e1Vb9SMfpNufEpLCZCS7wAHjDWOdZ21gWvL_KdovVBm_9rTbzmq1C3RH3IMDVJkCE89iGDhW9CvPKQugGSuI_LJnVU_aHj1TKo05WJKw-hK_FqYdpqGY6XFFnRKPwK2U7Bt3PLbGosaPJxigg0OyenFEtY6YAebCSjdeEePE0\", \"alg\":\"PS256\", \"dq\":\"orbMO5zaUoAC-04NjVPUPWS0SxmDdvcPaK7vyX0Xs6pxtJCzXEnCAvEpxWX0iU487ZFx3KkNetj5NnQRXMYtUxVwz6gxxCkMwhVXRz9Ca-MvJEy9hxoAYtuUrbDpOwr0nJu3g-Qybmx1elPReXbNVDCHzA7GgB5DQAK3Ex3raY0\", \"n\":\"gmO-ZWC74590_aDUMPKUiaQkyHzB8ffUADpQZoHYkZAeeV_cvyCy1Xm-ADyHHZ7ghzLsMdprf-hfE98wVK8V1tU8UoqqcKH8ohm54vnzCrnrv9wmCvqmc-vcEFXfKvqQS5LCZ9oKxgEryoNo-Z2NnBzAgGzcDhFLIR5ZT1sSKmsnbyC9tLqXM39N606N9yK_UzJe27DYe4opQs4APN5m79NV0K_HjWrxbk2XTZJJt_Ay8rU5Qc9k7sGMDqv-86Qhp_peTdGwlUQucvYLtlXkVPA4ALlZr7FjMi55B5Epah4gSc_YcKQZ41Bj_w2N6EzxLNgJW1uAa3ZhJqG81TSVbw\" }";
+		processCallback(null, "/Users/ttran/projects/devops/refresh-token-management/scripts/postman/cert/network.p12", "/Users/ttran/projects/devops/refresh-token-management/scripts/postman/cert/public.cer", "P@ssword1", code, clientId, "https://httpbin.org/get", "https://sso.pingapac.com", "nonce", jwk, "https://sso.pingapac.com/as/token.oauth2");
+	}
+
 	public static void processCallback(UpdatableEntry entry, String keystoreFileLocation, String keystoreRootCAFileLocation, String keystorePassword, String code, String clientId, String redirectUri, String audience, String expectedNonce, String jwk, String tokenEndpoint) throws Exception
 	{
 		Map<String, String> headers = new HashMap<String, String>();
@@ -322,8 +341,9 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 
 		String clientAuthenticationJWT = JwtUtilities.getClientJWTAuthentication(clientId, audience, jwk);
 
-		String queryString = "code=" + code + "&client_id=" + clientId
-				+ "&grant_type=authorization_code&redirect_uri=" + redirectUri + "&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer&client_assertion=" + clientAuthenticationJWT;
+		String queryString = String.format("code=%s&client_id=%s&grant_type=authorization_code&redirect_uri=%s&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer&client_assertion=%s", code, clientId, redirectUri, clientAuthenticationJWT);
+//		//"code=" + code + "&client_id=" + clientId
+//				+ "&grant_type=authorization_code&redirect_uri=" + redirectUri + "&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer&client_assertion=" + clientAuthenticationJWT;
 
 		//TODO: Make this configurable
 		boolean isIgnoreSSLErrors = true;
@@ -339,7 +359,7 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		}
 
 		if (tokenRespObj.getStatusCode() != 200)
-			throw new Exception("Could not exchange code for access token - invalid status code");
+			throw new Exception(tokenRespObj.getResponseBody());
 
 		String refToken = tokenRespObj.getResponseBody();
 
