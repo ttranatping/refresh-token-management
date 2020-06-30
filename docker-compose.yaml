@@ -47,8 +47,8 @@ services:
       - "1443:443"
     networks:
       - pingnet
-    volumes:
-      - pingdirectory-out:/opt/out
+#    volumes:
+#      - pingdirectory-out:/opt/out
     #  - ${HOME}/projects/devops/pingidentity-server-profiles/simple-sync/pingdirectory:/opt/in
 
   pingdatasync:
