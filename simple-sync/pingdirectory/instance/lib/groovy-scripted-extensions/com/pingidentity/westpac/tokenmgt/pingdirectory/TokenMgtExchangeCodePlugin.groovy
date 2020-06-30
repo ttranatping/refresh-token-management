@@ -26,11 +26,13 @@
  */
 package com.pingidentity.westpac.tokenmgt.pingdirectory;
 
+import java.security.Security;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -81,9 +83,9 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 	private String keystoreRootCAFileLocation;
 	private String keystorePassword;
 
-	private JSONParser parser = new JSONParser();
+	private static JSONParser parser = new JSONParser();
 
-	String [] allowedProtocols = null;
+	private static String [] allowedProtocols = null;
 
 	/**
 	 * Creates a new instance of this plugin. All plugin implementations must
@@ -91,6 +93,8 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 	 * done in the {@code initializePlugin} method.
 	 */
 	public TokenMgtExchangeCodePlugin() {
+
+		Security.addProvider(new BouncyCastleProvider());
 
 		allowedProtocols = new String[1];
 		allowedProtocols[0] = "TLSv1.2";
@@ -292,7 +296,7 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		String tokenMgtConfigTokenEndpoint = parentEntry.getAttribute("tokenMgtConfigTokenEndpoint").get(0).getValue();
 
 		try {
-			processCallback(entry, tokenMgtAuthCode, tokenMgtClientId, tokenMgtRedirectURI, tokenMgtConfigClientAssertionAudience, tokenMgtExpectedNonce, tokenMgtConfigClientAssertionJWK, tokenMgtConfigTokenEndpoint);
+			processCallback(entry, keystoreFileLocation, keystoreRootCAFileLocation, keystorePassword, tokenMgtAuthCode, tokenMgtClientId, tokenMgtRedirectURI, tokenMgtConfigClientAssertionAudience, tokenMgtExpectedNonce, tokenMgtConfigClientAssertionJWK, tokenMgtConfigTokenEndpoint);
 		} catch (Exception e) {
 			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError", "Error processing callback: " + e.getMessage());
 			entry.addAttribute(tokenMgtLastStatusError);
@@ -310,7 +314,7 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		return parent;
 	}
 
-	public void processCallback(UpdatableEntry entry, String code, String clientId, String redirectUri, String audience, String expectedNonce, String jwk, String tokenEndpoint) throws Exception
+	public static void processCallback(UpdatableEntry entry, String keystoreFileLocation, String keystoreRootCAFileLocation, String keystorePassword, String code, String clientId, String redirectUri, String audience, String expectedNonce, String jwk, String tokenEndpoint) throws Exception
 	{
 		Map<String, String> headers = new HashMap<String, String>();
 		headers.put("Content-Type", "application/x-www-form-urlencoded");
@@ -328,8 +332,8 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		HttpResponseObj tokenRespObj;
 		try {
 			tokenRespObj = MASSLClient.executeHTTP(tokenEndpoint, "POST", headers, queryString,
-					allowedProtocols, this.keystoreFileLocation, this.keystoreRootCAFileLocation,
-					this.keystorePassword, "JKS", isIgnoreSSLErrors, 30000);
+					allowedProtocols, keystoreFileLocation, keystoreRootCAFileLocation,
+					keystorePassword, "JKS", isIgnoreSSLErrors, 30000);
 		} catch (Exception e1) {
 			throw new Exception("Could not exchange code for access token - unhandled exception", e1);
 		}
@@ -356,15 +360,18 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		String accessTokenJSON = getJWTJSON(accessToken);
 		String idTokenJSON = getJWTJSON(idToken);
 
-		addAttribute(entry, "tokenMgtAccessTokenJWT", accessToken);
-		addAttribute(entry, "tokenMgtRefreshToken", refreshToken);
-		addAttribute(entry, "tokenMgtIDTokenJWT", idToken);
-		addAttribute(entry, "tokenMgtAccessTokenJSON", accessTokenJSON);
-		addAttribute(entry, "tokenMgtIDTokenJSON", idTokenJSON);
+		if(entry != null)
+		{
+			addAttribute(entry, "tokenMgtAccessTokenJWT", accessToken);
+			addAttribute(entry, "tokenMgtRefreshToken", refreshToken);
+			addAttribute(entry, "tokenMgtIDTokenJWT", idToken);
+			addAttribute(entry, "tokenMgtAccessTokenJSON", accessTokenJSON);
+			addAttribute(entry, "tokenMgtIDTokenJSON", idTokenJSON);
+		}
 
 	}
 
-	private void addAttribute(UpdatableEntry entry, String attributeName, String attributeValue) {
+	private static void addAttribute(UpdatableEntry entry, String attributeName, String attributeValue) {
 
 		if(attributeValue == null)
 			return;
