@@ -1,0 +1,90 @@
+version: "2.4"
+# The server profiles used in this example are intended for use with edge versions of the product image only.
+
+#-------------------------------------------------------------------------------------
+#- Ping Identity Simple Sync integrated demo
+#-
+#- PingDataSync will synchronize data from a source tree on a PingDirectory instance
+#- to a destination tree on the same PingDirectory instance.
+#- The entries from ou=source,o=sync to ou=destination,o=sync will be
+#- synchronized every second.
+#-
+#-                +---------------+    +---------------+
+#-                | PingDataSync  |    |PingDataConsole|
+#-                +---------------+    +---------------+
+#-                              \        /
+#-                          +----------------+
+#-                          | PingDirectory  |
+#-                          +----------------+
+#-
+#- To view PingData Console (PingDirectory)
+#-
+#-    https://localhost:8443/
+#-
+#-      Server: pingdirectory
+#-    Username: administrator
+#-    Password: 2FederateM0re
+#-------------------------------------------------------------------------------------
+
+services:
+  pingdirectory:
+    image: pingidentity/pingdirectory:8.1.0.0-alpine-edge
+    environment:
+      - SERVER_PROFILE_URL=https://github.com/ttranatping/refresh-token-management.git
+      - SERVER_PROFILE_PATH=simple-sync/pingdirectory
+      - USER_BASE_DN=o=sync
+    env_file:
+      - ${HOME}/.pingidentity/devops
+    ulimits:
+      nproc:
+        soft: 16384
+        hard: 16384
+      nofile:
+        soft: 65535
+        hard: 65535
+    ports:
+      - "1636:636"
+      - "1443:443"
+    networks:
+      - pingnet
+    volumes:
+      - pingdirectory-out:/opt/out
+    #  - ${HOME}/projects/devops/pingidentity-server-profiles/simple-sync/pingdirectory:/opt/in
+
+  pingdatasync:
+    image: pingidentity/pingdatasync:8.1.0.0-EA-alpine-java11-edge
+    environment:
+      - SERVER_PROFILE_URL=https://github.com/ttranatping/refresh-token-management.git
+      - SERVER_PROFILE_PATH=simple-sync/pingdatasync
+      - USER_BASE_DN=o=sync
+    env_file:
+      - ${HOME}/.pingidentity/devops
+    ulimits:
+      nproc:
+        soft: 16384
+        hard: 16384
+      nofile:
+        soft: 65535
+        hard: 65535
+    ports:
+      - "2636:636"
+      - "2443:443"
+    networks:
+      - pingnet
+    volumes:
+      - pingdatasync-out:/opt/out
+    #  - ${HOME}/projects/devops/pingidentity-server-profiles/simple-sync/pingdatasync:/opt/in
+
+  pingdataconsole:
+    image: pingidentity/pingdataconsole:8.1.0.0-alpine-edge
+    ports:
+      - "8443:8443"
+    networks:
+      - pingnet
+
+networks:
+  pingnet:
+
+volumes:
+  pingdirectory-out:
+  pingdatasync-out:
