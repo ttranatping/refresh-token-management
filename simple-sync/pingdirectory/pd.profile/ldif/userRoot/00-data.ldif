@@ -5,11 +5,6 @@ ${BASE_ATTRIBUTE}: ${BASE_VALUE}
 aci: (targetattr!="userPassword")(version 3.0; acl "Allow anonymous read access for anyone"; allow (read,search,compare) userdn="ldap:///anyone";)
 aci: (targetattr="*")(version 3.0; acl "Allow users to update their own entries"; allow (write) userdn="ldap:///self";)
 
-dn: ou=adr-clients,${USER_BASE_DN}
-objectClass: organizationalUnit
-objectClass: top
-ou: adr-clients
-
 dn: ou=source,${USER_BASE_DN}
 objectClass: top
 objectClass: organizationalUnit
