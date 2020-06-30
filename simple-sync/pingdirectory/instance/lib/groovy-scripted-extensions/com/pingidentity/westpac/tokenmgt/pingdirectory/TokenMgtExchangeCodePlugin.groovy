@@ -80,8 +80,10 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 	private String keystoreFileLocation;
 	private String keystoreRootCAFileLocation;
 	private String keystorePassword;
-	
+
 	private JSONParser parser = new JSONParser();
+
+	String [] allowedProtocols = null;
 
 	/**
 	 * Creates a new instance of this plugin. All plugin implementations must
@@ -89,6 +91,9 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 	 * done in the {@code initializePlugin} method.
 	 */
 	public TokenMgtExchangeCodePlugin() {
+
+		allowedProtocols = new String[1];
+		allowedProtocols[0] = "TLSv1.2";
 	}
 
 	/**
@@ -239,27 +244,27 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 			final UpdatableAddRequest request, final UpdatableAddResult result) {
 
 		UpdatableEntry entry = request.getEntry();
-		
+
 		String objectClass = entry.getAttribute("objectClass").get(0).getValue();
-		
+
 		if(!objectClass.equals("tokenMgt"))
 			return PreParsePluginResult.SUCCESS;
-		
+
 		Entry parentEntry = null;
-		
+
 		String parentDN = getParentDN(entry.getDN());
 		try {
 			parentEntry = serverContext.getBackendForEntry(parentDN).getEntry(parentDN);
-			
+
 			if(parentEntry == null)
 				throw new Exception("Parent entry is null.");
-			
+
 		} catch (Exception e) {
 			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError", "Error loading parent: " + e.getMessage());
 			entry.addAttribute(tokenMgtLastStatusError);
 			return PreParsePluginResult.SUCCESS;
 		}
-		
+
 		if(!parentEntry.hasAttribute("tokenMgtConfigClientAssertionAudience") || !parentEntry.hasAttribute("tokenMgtConfigClientAssertionJWK") || !parentEntry.hasAttribute("tokenMgtConfigTokenEndpoint"))
 		{
 			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError", "Parent missing configuration.");
@@ -285,7 +290,7 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		String tokenMgtConfigClientAssertionAudience = parentEntry.getAttribute("tokenMgtConfigClientAssertionAudience").get(0).getValue();
 		String tokenMgtConfigClientAssertionJWK = parentEntry.getAttribute("tokenMgtConfigClientAssertionJWK").get(0).getValue();
 		String tokenMgtConfigTokenEndpoint = parentEntry.getAttribute("tokenMgtConfigTokenEndpoint").get(0).getValue();
-		
+
 		try {
 			processCallback(entry, tokenMgtAuthCode, tokenMgtClientId, tokenMgtRedirectURI, tokenMgtConfigClientAssertionAudience, tokenMgtExpectedNonce, tokenMgtConfigClientAssertionJWK, tokenMgtConfigTokenEndpoint);
 		} catch (Exception e) {
@@ -297,32 +302,33 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		return PreParsePluginResult.SUCCESS;
 
 	}
-	
+
 	private static String getParentDN(String dn)
 	{
 		String parent = dn.substring(dn.indexOf(',')+1);
-		
+
 		return parent;
 	}
-	
+
 	public void processCallback(UpdatableEntry entry, String code, String clientId, String redirectUri, String audience, String expectedNonce, String jwk, String tokenEndpoint) throws Exception
-	{		
+	{
 		Map<String, String> headers = new HashMap<String, String>();
 		headers.put("Content-Type", "application/x-www-form-urlencoded");
 		headers.put("Accept", "application/json");
-		
+
 		String clientAuthenticationJWT = JwtUtilities.getClientJWTAuthentication(clientId, audience, jwk);
-		
+
 		String queryString = "code=" + code + "&client_id=" + clientId
 				+ "&grant_type=authorization_code&redirect_uri=" + redirectUri + "&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer&client_assertion=" + clientAuthenticationJWT;
 
 		//TODO: Make this configurable
 		boolean isIgnoreSSLErrors = true;
-		
+
+
 		HttpResponseObj tokenRespObj;
 		try {
 			tokenRespObj = MASSLClient.executeHTTP(tokenEndpoint, "POST", headers, queryString,
-					new String[] { "TLSv1.2", "TLSv1.1" }, this.keystoreFileLocation, this.keystoreRootCAFileLocation,
+					allowedProtocols, this.keystoreFileLocation, this.keystoreRootCAFileLocation,
 					this.keystorePassword, "JKS", isIgnoreSSLErrors, 30000);
 		} catch (Exception e1) {
 			throw new Exception("Could not exchange code for access token - unhandled exception", e1);
@@ -355,31 +361,31 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		addAttribute(entry, "tokenMgtIDTokenJWT", idToken);
 		addAttribute(entry, "tokenMgtAccessTokenJSON", accessTokenJSON);
 		addAttribute(entry, "tokenMgtIDTokenJSON", idTokenJSON);
-		
+
 	}
-	
+
 	private void addAttribute(UpdatableEntry entry, String attributeName, String attributeValue) {
-		
+
 		if(attributeValue == null)
 			return;
-		
+
 		Attribute tokenMgtLastStatusError = new Attribute(attributeName, attributeValue);
 		entry.addAttribute(tokenMgtLastStatusError);
-		
+
 	}
 
 	private static String getJWTJSON(String jwt)
 	{
 		if(jwt == null)
 			return null;
-		
+
 		String [] jwtParts = jwt.split("\\.");
-		
+
 		if(jwtParts.length < 2)
 			return null;
-		
+
 		byte[] decodedJSON = Base64.getDecoder().decode(jwtParts[1]);
-		
+
 		return new String(decodedJSON);
 	}
 

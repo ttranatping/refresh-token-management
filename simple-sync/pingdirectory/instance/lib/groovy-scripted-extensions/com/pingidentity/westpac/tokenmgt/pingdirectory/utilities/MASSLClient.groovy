@@ -36,7 +36,6 @@ public class MASSLClient {
 
 	private final static Log LOGGER = LogFactory.getLog(MASSLClient.class);
 
-	private final static String[] DEFAULT_HTTPSPROTOCOLS = { "TLSv1.1", "TLSv1.2" };
 	private final static HostnameVerifier DEFAULT_HOSTNAMEVERIFIER = SSLConnectionSocketFactory
 			.getDefaultHostnameVerifier();
 
@@ -95,14 +94,21 @@ public class MASSLClient {
 		}
 
 		if (httpsProtocolSupport == null || httpsProtocolSupport.length == 0)
-			httpsProtocolSupport = DEFAULT_HTTPSPROTOCOLS;
+		{
+			String [] protocols = new String[1];
+			protocols[0] = "TLSv1.2";
+
+			httpsProtocolSupport = protocols;
+		}
 
 		HostnameVerifier hostnameVerifier = DEFAULT_HOSTNAMEVERIFIER;
 
 		SSLContextBuilder sslCtx = SSLContexts.custom();
 
 		if (keystoreLocation != null) {
-			String[] certFiles = new String[] { rootCALocation };
+
+			String[] certFiles = new String[1];
+			certFiles[0] = rootCALocation;
 
 			KeyStore keystore = KeyStoreCreator.getKeyStore(keystorePassword, keystoreLocation, certFiles, keystoreType);
 
@@ -127,8 +133,8 @@ public class MASSLClient {
 		//TODO: reintroduce this
 		if (ignoreSSLErrors) {
 			hostnameVerifier = new NoopHostnameVerifier();
-			sslCtx.loadTrustMaterial( 
-				    null, 
+			sslCtx.loadTrustMaterial(
+				    null,
 				    new TrustStrategy ()
 				    {
 
@@ -178,9 +184,9 @@ public class MASSLClient {
 		case "DELETE":
 			if (LOGGER.isDebugEnabled())
 				LOGGER.debug("Initiating delete request");
-			
+
 			HttpDelete delete = new HttpDelete(url);
-			
+
 			request = delete;
 			break;
 		default:
@@ -212,7 +218,7 @@ public class MASSLClient {
 
 		if(method.equalsIgnoreCase("delete"))
 			return new HttpResponseObj(response.getStatusLine().getStatusCode(), null);
-		
+
 		BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
 
 		StringBuffer result = new StringBuffer();

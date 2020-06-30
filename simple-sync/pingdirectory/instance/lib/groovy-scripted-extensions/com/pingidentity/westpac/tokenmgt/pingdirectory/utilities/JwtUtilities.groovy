@@ -26,7 +26,6 @@ import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 
 public class JwtUtilities {
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static String getUserPrincipal(String principalAttr, String jwt, String jwksUrl)
 	{
 		// Set up a JWT processor to parse the tokens and then check their
@@ -43,14 +42,14 @@ public class JwtUtilities {
 		// and can
 		// also gracefully handle key-rollover
 		JWKSource keySource = null;
-		
+
 		try {
 			keySource = new RemoteJWKSet(new URL(
 					jwksUrl));
 		} catch (MalformedURLException e) {
 			return null;
 		}
-		
+
 		// The expected JWS algorithm of the access tokens (agreed out-of-band)
 		JWSAlgorithm expectedJWSAlg = JWSAlgorithm.ES256;
 
@@ -67,18 +66,17 @@ public class JwtUtilities {
 		} catch (Exception e) {
 			return null;
 		}
-		
+
 		return claimsSet.getClaim(principalAttr).toString();
 	}
 
 
-	@SuppressWarnings("unchecked")
 	public static String getClientJWTAuthentication(String clientId, String audience, String jwk) throws Exception {
 
 		JSONObject base = new JSONObject();
-		
+
 		base.put("sub", clientId);
-		
+
 		try {
 			String jwtRequest = getJWT(base, jwk, clientId, audience);
 
