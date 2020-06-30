@@ -1,0 +1,10 @@
+version: 1
+
+dn: ou=adr-clients,o=sync
+objectClass: organizationalUnit
+objectClass: top
+ou: adr-clients
+aci: (targetattr="*")(version 3.0; acl "Administrators can add, modify and delete entries";allow (all) userdn="ldap:///cn=admin,${USER_BASE_DN}";)
+aci: (targetattr="*")(version 3.0; acl "Administrators can add, modify and delete entries";allow (all) userdn="ldap:///cn=SCIM2 Servlet,cn=Root DNs,cn=config";)
+aci: (targetattr="+")(version 3.0; acl "Administrators can read, search or compare operational attributes";allow (read,search,compare) userdn="ldap:///cn=admin,${USER_BASE_DN}";)
+aci: (targetattr="+")(version 3.0; acl "Administrators can read, search or compare operational attributes";allow (read,search,compare) userdn="ldap:///cn=SCIM2 Servlet,cn=Root DNs,cn=config";)

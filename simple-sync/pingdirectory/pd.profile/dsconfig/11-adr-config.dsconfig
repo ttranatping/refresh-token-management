@@ -1,0 +1,251 @@
+
+# [30/Jun/2020:03:46:39.790 +0000] conn=77 op=483 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-schema --schema-name urn:pingidentity:adr:config
+dsconfig create-scim-schema --schema-name urn:pingidentity:adr:config --set "display-name:ADR Configuration"
+
+# [30/Jun/2020:03:47:21.691 +0000] conn=77 op=498 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:config --attribute-name token_endpoint
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:config --attribute-name token_endpoint --set required:true
+
+# [30/Jun/2020:03:47:49.657 +0000] conn=77 op=520 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:config --attribute-name client_id
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:config --attribute-name client_id --set required:true --set case-exact:true
+
+# [30/Jun/2020:03:49:08.269 +0000] conn=77 op=546 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:config --attribute-name private_jwk
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:config --attribute-name private_jwk --set type:complex
+
+# [30/Jun/2020:03:49:35.213 +0000] conn=77 op=576 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:config --attribute-name client_assertion_aud
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:config --attribute-name client_assertion_aud
+
+# [30/Jun/2020:03:49:42.735 +0000] conn=77 op=632 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:config --attribute-name private_jwk --set type:complex
+dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:config --attribute-name private_jwk
+
+# [30/Jun/2020:03:49:59.816 +0000] conn=77 op=660 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:config --attribute-name client_assertion_jwk
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:config --attribute-name client_assertion_jwk --set type:complex
+
+# [30/Jun/2020:03:57:06.784 +0000] conn=77 op=744 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-resource-type --type-name ADRConfiguration
+dsconfig create-scim-resource-type --type-name ADRConfiguration --type ldap-mapping --set enabled:true --set endpoint:adr-config --set structural-ldap-objectclass:organizationalUnit --set auxiliary-ldap-objectclass:tokenMgtConfigAux --set include-base-dn:ou=adr-clients,o=sync --set create-dn-pattern:entryUUID=server-generated,ou=adr-clients,o=sync --set core-schema:urn:pingidentity:adr:config
+
+# [30/Jun/2020:03:59:31.469 +0000] conn=77 op=833 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute-mapping --type-name ADRConfiguration --mapping-name client_assertion_aud
+dsconfig create-scim-attribute-mapping --type-name ADRConfiguration --mapping-name client_assertion_aud --set scim-resource-type-attribute:client_assertion_aud --set ldap-attribute:tokenMgtConfigClientAssertionAudience --set authoritative:true
+
+# [30/Jun/2020:04:00:12.701 +0000] conn=77 op=848 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute-mapping --type-name ADRConfiguration --mapping-name client_assertion_jwk
+dsconfig create-scim-attribute-mapping --type-name ADRConfiguration --mapping-name client_assertion_jwk --set scim-resource-type-attribute:client_assertion_jwk --set ldap-attribute:tokenMgtConfigClientAssertionJWK --set authoritative:true
+
+# [30/Jun/2020:04:00:39.334 +0000] conn=77 op=867 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute-mapping --type-name ADRConfiguration --mapping-name client_id
+dsconfig create-scim-attribute-mapping --type-name ADRConfiguration --mapping-name client_id --set scim-resource-type-attribute:client_id --set ldap-attribute:tokenMgtConfigClientId --set searchable:true --set authoritative:true
+
+# [30/Jun/2020:04:01:08.862 +0000] conn=77 op=890 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute-mapping --type-name ADRConfiguration --mapping-name token_endpoint
+dsconfig create-scim-attribute-mapping --type-name ADRConfiguration --mapping-name token_endpoint --set scim-resource-type-attribute:token_endpoint --set ldap-attribute:tokenMgtConfigTokenEndpoint --set authoritative:true
+
+# [30/Jun/2020:04:06:08.158 +0000] conn=77 op=970 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# Undo command: dsconfig delete-identity-mapper --mapper-name uidmatcher
+dsconfig create-identity-mapper --mapper-name uidmatcher --type exact-match --set enabled:false --set match-base-dn:o=sync
+
+# [30/Jun/2020:04:06:14.198 +0000] conn=77 op=990 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# Undo command: dsconfig delete-access-token-validator --validator-name mock_atv
+dsconfig create-access-token-validator --validator-name mock_atv --type mock --set identity-mapper:uidmatcher --set enabled:true
+
+# [30/Jun/2020:04:06:32.954 +0000] conn=77 op=1010 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# Undo command: dsconfig set-http-servlet-extension-prop --extension-name SCIM2 --remove access-token-validator:mock_atv
+dsconfig set-http-servlet-extension-prop --extension-name SCIM2 --add access-token-validator:mock_atv
+
+# [30/Jun/2020:04:19:46.906 +0000] conn=77 op=1155 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# Undo command: dsconfig set-identity-mapper-prop --mapper-name uidmatcher --set enabled:false
+dsconfig set-identity-mapper-prop --mapper-name uidmatcher --set enabled:true
+
+# [30/Jun/2020:04:26:46.240 +0000] conn=77 op=1266 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig set-scim-resource-type-prop --type-name ADRConfiguration --remove "include-filter:(objectClass=tokenMgtConfigAux)"
+dsconfig set-scim-resource-type-prop --type-name ADRConfiguration --add "include-filter:(objectClass=tokenMgtConfigAux)"
+
+# [30/Jun/2020:04:50:31.364 +0000] conn=77 op=1419 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig set-scim-attribute-mapping-prop --type-name ADRConfiguration --mapping-name client_id --set ldap-attribute:tokenMgtConfigClientId
+dsconfig set-scim-attribute-mapping-prop --type-name ADRConfiguration --mapping-name client_id --set ldap-attribute:ou
+
+# [30/Jun/2020:04:53:41.705 +0000] conn=77 op=1543 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig set-scim-resource-type-prop --type-name ADRConfiguration --set create-dn-pattern:entryUUID=server-generated,ou=adr-clients,o=sync
+dsconfig set-scim-resource-type-prop --type-name ADRConfiguration --set "create-dn-pattern:ou={client_id},ou=adr-clients,o=sync"
+
+# [30/Jun/2020:04:53:54.704 +0000] conn=77 op=1604 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig set-scim-resource-type-prop --type-name ADRConfiguration --set "create-dn-pattern:ou={client_id},ou=adr-clients,o=sync"
+dsconfig set-scim-resource-type-prop --type-name ADRConfiguration --remove "create-dn-pattern:ou={client_id},ou=adr-clients,o=sync"
+
+# [30/Jun/2020:04:54:21.439 +0000] conn=77 op=1665 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig set-scim-resource-type-prop --type-name ADRConfiguration --remove "create-dn-pattern:ou={ou},ou=adr-clients,o=sync"
+dsconfig set-scim-resource-type-prop --type-name ADRConfiguration --set "create-dn-pattern:ou={ou},ou=adr-clients,o=sync"
+
+# [30/Jun/2020:06:16:04.187 +0000] conn=77 op=1697 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-schema --schema-name urn:pingidentity:adr:token:instance
+dsconfig create-scim-schema --schema-name urn:pingidentity:adr:token:instance --set display-name:ADRTokenInstance
+
+# [30/Jun/2020:06:17:14.317 +0000] conn=77 op=1712 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --set required:true --set case-exact:true --set mutability:write-only --set returned:never
+
+# [30/Jun/2020:06:17:32.109 +0000] conn=77 op=1732 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-subattribute --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --subattribute-name client_id
+dsconfig create-scim-subattribute --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --subattribute-name client_id --set required:true --set case-exact:true
+
+# [30/Jun/2020:06:18:15.709 +0000] conn=77 op=1751 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-subattribute --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --subattribute-name auth_code
+dsconfig create-scim-subattribute --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --subattribute-name auth_code --set required:true --set case-exact:true --set mutability:immutable --set returned:never
+
+# [30/Jun/2020:06:18:43.227 +0000] conn=77 op=1785 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig set-scim-subattribute-prop --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --subattribute-name client_id --set mutability:read-write
+dsconfig set-scim-subattribute-prop --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --subattribute-name client_id --set mutability:immutable
+
+# [30/Jun/2020:06:19:13.522 +0000] conn=77 op=1808 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-subattribute --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --subattribute-name redirect_uri
+dsconfig create-scim-subattribute --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --subattribute-name redirect_uri --set required:true --set case-exact:true --set mutability:immutable
+
+# [30/Jun/2020:06:20:13.712 +0000] conn=77 op=1842 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig create-scim-subattribute --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --subattribute-name auth_code --set required:true --set case-exact:true --set mutability:immutable --set returned:never
+dsconfig delete-scim-subattribute --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --subattribute-name auth_code
+
+# [30/Jun/2020:06:20:15.338 +0000] conn=77 op=1878 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig create-scim-subattribute --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --subattribute-name client_id --set required:true --set case-exact:true --set mutability:immutable
+dsconfig delete-scim-subattribute --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --subattribute-name client_id
+
+# [30/Jun/2020:06:20:17.205 +0000] conn=77 op=1910 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig create-scim-subattribute --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --subattribute-name redirect_uri --set required:true --set case-exact:true --set mutability:immutable
+dsconfig delete-scim-subattribute --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --subattribute-name redirect_uri
+
+# [30/Jun/2020:06:20:27.911 +0000] conn=77 op=1958 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig set-scim-attribute-prop --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --set mutability:write-only
+dsconfig set-scim-attribute-prop --schema-name urn:pingidentity:adr:token:instance --attribute-name auth_code --set mutability:immutable
+
+# [30/Jun/2020:06:20:42.896 +0000] conn=77 op=1973 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name client_id
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name client_id --set required:true --set case-exact:true --set mutability:immutable
+
+# [30/Jun/2020:06:21:08.432 +0000] conn=77 op=1999 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name redirect_uri
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name redirect_uri --set required:true --set case-exact:true --set mutability:immutable
+
+# [30/Jun/2020:06:21:44.482 +0000] conn=77 op=2029 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name access_token_json
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name access_token_json --set type:complex --set mutability:read-only
+
+# [30/Jun/2020:06:23:02.580 +0000] conn=77 op=2100 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-subattribute --schema-name urn:pingidentity:adr:token:instance --attribute-name access_token_json --subattribute-name exp
+dsconfig create-scim-subattribute --schema-name urn:pingidentity:adr:token:instance --attribute-name access_token_json --subattribute-name exp --set type:integer --set mutability:read-only
+
+# [30/Jun/2020:06:23:32.366 +0000] conn=77 op=2117 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name access_token
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name access_token --set case-exact:true --set mutability:read-only
+
+# [30/Jun/2020:06:24:14.876 +0000] conn=77 op=2155 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name refresh_token
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name refresh_token --set case-exact:true --set mutability:read-only --set returned:never
+
+# [30/Jun/2020:06:25:48.044 +0000] conn=77 op=2197 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name id_token_json
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name id_token_json --set type:complex --set mutability:read-only
+
+# [30/Jun/2020:06:26:05.981 +0000] conn=77 op=2243 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name id_token
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name id_token --set case-exact:true --set mutability:read-only
+
+# [30/Jun/2020:06:29:46.893 +0000] conn=77 op=2324 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-resource-type --type-name ADRTokenInstance
+dsconfig create-scim-resource-type --type-name ADRTokenInstance --type ldap-mapping --set enabled:true --set endpoint:adr-token --set structural-ldap-objectclass:tokenMgt --set include-base-dn:ou=adr-clients,o=sync --set "include-filter:(objectClass=tokenMgt)" --set "create-dn-pattern:entryUUID=server-generated,ou={client_id},ou=adr-clients,o=sync" --set core-schema:urn:pingidentity:adr:token:instance
+
+# [30/Jun/2020:06:30:33.820 +0000] conn=77 op=2347 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name auth_code
+dsconfig create-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name auth_code --set scim-resource-type-attribute:auth_code --set ldap-attribute:tokenMgtAuthCode --set readable:false
+
+# [30/Jun/2020:06:30:57.824 +0000] conn=77 op=2362 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name client_id
+dsconfig create-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name client_id --set scim-resource-type-attribute:client_id --set ldap-attribute:tokenMgtClientId --set searchable:true --set authoritative:true
+
+# [30/Jun/2020:06:31:25.706 +0000] conn=77 op=2381 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name redirect_uri
+dsconfig create-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name redirect_uri --set scim-resource-type-attribute:redirect_uri --set ldap-attribute:tokenMgtRedirectURI --set searchable:true --set authoritative:true
+
+# [30/Jun/2020:06:32:11.489 +0000] conn=77 op=2404 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name access_token_json
+dsconfig create-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name access_token_json --set scim-resource-type-attribute:access_token_json --set ldap-attribute:tokenMgtAccessTokenJSON --set writable:false --set authoritative:true
+
+# [30/Jun/2020:06:32:42.728 +0000] conn=77 op=2431 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name access_token
+dsconfig create-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name access_token --set scim-resource-type-attribute:access_token --set ldap-attribute:tokenMgtAccessTokenJWT --set writable:false --set authoritative:true
+
+# [30/Jun/2020:06:33:34.089 +0000] conn=77 op=2462 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name id_token_json
+dsconfig create-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name id_token_json --set scim-resource-type-attribute:id_token_json --set ldap-attribute:tokenMgtIDTokenJSON --set writable:false --set searchable:true --set authoritative:true
+
+# [30/Jun/2020:06:33:39.089 +0000] conn=77 op=2510 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig set-scim-attribute-mapping-prop --type-name ADRTokenInstance --mapping-name access_token_json --set searchable:false
+dsconfig set-scim-attribute-mapping-prop --type-name ADRTokenInstance --mapping-name access_token_json --set searchable:true
+
+# [30/Jun/2020:06:34:04.574 +0000] conn=77 op=2545 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name id_token
+dsconfig create-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name id_token --set scim-resource-type-attribute:id_token --set ldap-attribute:tokenMgtIDTokenJWT --set writable:false --set authoritative:true
+
+# [30/Jun/2020:06:38:46.765 +0000] conn=77 op=2660 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name expected_nonce
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name expected_nonce --set required:true --set case-exact:true --set mutability:immutable
+
+# [30/Jun/2020:06:39:17.136 +0000] conn=77 op=2787 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name expected_nonce
+dsconfig create-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name expected_nonce --set scim-resource-type-attribute:expected_nonce --set ldap-attribute:tokenMgtExpectedNonce --set authoritative:true
+
+# [30/Jun/2020:06:42:59.045 +0000] conn=77 op=2836 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig set-scim-resource-type-prop --type-name ADRTokenInstance --set "create-dn-pattern:entryUUID=server-generated,ou={client_id},ou=adr-clients,o=sync"
+dsconfig set-scim-resource-type-prop --type-name ADRTokenInstance --set "create-dn-pattern:entryUUID=server-generated,ou={tokenMgtClientId},ou=adr-clients,o=sync"

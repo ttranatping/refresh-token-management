@@ -1,0 +1,10 @@
+version: 1
+
+dn: cn=admin,${USER_BASE_DN}
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: admin
+sn: Administrator
+uid: admin

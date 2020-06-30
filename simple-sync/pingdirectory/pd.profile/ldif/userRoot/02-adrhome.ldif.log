@@ -1,0 +1,20 @@
+version: 1
+
+#!RESULT OK
+#!CONNECTION ldap://localhost:1636
+#!DATE 2020-06-30T16:05:55.753
+dn: ou=adr-clients1,o=sync
+objectClass: organizationalUnit
+objectClass: top
+ou: adr-clients
+aci: (targetattr="*")(version 3.0; acl "Administrators can add, modify and d
+ elete entries";allow (all) userdn="ldap:///cn=admin,o=sync";)
+aci: (targetattr="*")(version 3.0; acl "Administrators can add, modify and d
+ elete entries";allow (all) userdn="ldap:///cn=SCIM2 Servlet,cn=Root DNs,cn=
+ config";)
+aci: (targetattr="+")(version 3.0; acl "Administrators can read, search or c
+ ompare operational attributes";allow (read,search,compare) userdn="ldap:///
+ cn=admin,o=sync";)
+aci: (targetattr="+")(version 3.0; acl "Administrators can read, search or c
+ ompare operational attributes";allow (read,search,compare) userdn="ldap:///
+ cn=SCIM2 Servlet,cn=Root DNs,cn=config";)

@@ -1,0 +1,7 @@
+dn: cn=schema
+objectClass: top
+objectClass: ldapSubentry
+objectClass: subschema
+cn: schema
+objectClasses: ( tokenMgtConfigAux-OID NAME 'tokenMgtConfigAux' AUXILIARY MUST ( tokenMgtConfigTokenEndpoint ) MAY ( tokenMgtConfigClientAssertionAudience $ tokenMgtConfigClientAssertionJWK ) )
+
