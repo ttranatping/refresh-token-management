@@ -1,0 +1,16 @@
+# [01/Jul/2020:10:13:07.412 +0000] conn=121 op=6165 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.144.4 to=192.168.144.3
+# Undo command: dsconfig delete-sync-source --source-name Source-QueryExpiringAccessTokens
+dsconfig create-sync-source --source-name Source-QueryExpiringAccessTokens --type groovy-scripted --set script-argument:refresh-advanced-notice-seconds=120 --set script-argument:pingdirectory-external-server-id=pingdirectory --set script-class:com.pingidentity.refreshtokendemo.tokenmgt.pingdatasync.ProcessExpiringTokensSyncSource
+         
+# [01/Jul/2020:10:14:22.452 +0000] conn=121 op=6182 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.144.4 to=192.168.144.3
+# Undo command: dsconfig delete-sync-destination --destination-name Dest-LogTokenChanges
+dsconfig create-sync-destination --destination-name Dest-LogTokenChanges --type groovy-scripted --set script-argument:log-file-path=/opt/out/instance/logs/TokenChanges.log --set script-class:com.pingidentity.refreshtokendemo.tokenmgt.pingdatasync.LogRefreshTokenChanges
+                                                                                         
+# [01/Jul/2020:10:14:52.470 +0000] conn=121 op=6220 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.144.4 to=192.168.144.3
+# Undo command: dsconfig delete-sync-pipe --pipe-name Pipe-ProcessExpiringAccessTokens
+dsconfig create-sync-pipe --pipe-name Pipe-ProcessExpiringAccessTokens --set started:true --set sync-source:Source-QueryExpiringAccessTokens --set sync-destination:Dest-LogTokenChanges --set include-changes-for-unchanged-attributes:true --set "change-detection-polling-interval:10 s" --set max-operation-attempts:1
+                                                                                                                
+# [01/Jul/2020:10:15:20.885 +0000] conn=121 op=6245 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.144.4 to=192.168.144.3
+# Undo command: dsconfig delete-sync-class --pipe-name Pipe-ProcessExpiringAccessTokens --class-name tokenMgt
+dsconfig create-sync-class --pipe-name Pipe-ProcessExpiringAccessTokens --class-name tokenMgt --set auto-mapped-source-attribute:-all- --set attribute-synchronization-mode:all-attributes --set modifies-as-creates:true --set creates-as-modifies:true
+

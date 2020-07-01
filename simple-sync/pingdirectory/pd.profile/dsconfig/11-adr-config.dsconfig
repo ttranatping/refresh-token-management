@@ -264,6 +264,23 @@ dsconfig create-plugin --plugin-name TokenManagement-Add-ExchangeCode --type gro
 dsconfig create-request-criteria --criteria-name TokenMgtSearchCriteria --type simple --set operation-type:search --set "all-included-target-entry-filter:(|(objectClass=tokenMgt)(objectClass=organizationalUnit))"
 
 
-# [01/Jul/2020:01:49:40.445 +0000] Offline changes by root                                                                                                                                                                                                                                                                          
+# [01/Jul/2020:01:49:40.445 +0000] Offline changes by root
 # Undo command: dsconfig delete-plugin --plugin-name TokenManagement-SearchEntry-RefreshToken
 dsconfig create-plugin --plugin-name TokenManagement-SearchEntry-RefreshToken --type groovy-scripted --set enabled:true --set plugin-type:searchresultentry --set script-argument:mtls-keystore-ca-location=/tmp/server-profile/scripts/postman/cert/public.cer --set script-argument:mtls-keystore-location=/tmp/server-profile/scripts/postman/cert/network.p12 --set 'script-argument:mtls-keystore-password=P@ssword1' --set 'script-argument:refresh-advance-seconds=120' --set script-class:com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory.TokenMgtRetrieveRefreshTokenPlugin --set request-criteria:TokenMgtSearchCriteria
+
+
+# [01/Jul/2020:05:23:09.040 +0000] conn=107 op=22 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.144.4 to=192.168.144.2
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-json-attribute-constraints --attribute-type tokenMgtAccessTokenJSON
+dsconfig create-json-attribute-constraints --attribute-type tokenMgtAccessTokenJSON --set enabled:true
+
+# [01/Jul/2020:05:23:59.435 +0000] conn=107 op=40 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.144.4 to=192.168.144.2
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-json-field-constraints --attribute-type tokenMgtAccessTokenJSON --json-field exp
+dsconfig create-json-field-constraints --attribute-type tokenMgtAccessTokenJSON --json-field exp --set value-type:integer --set is-required:true --set index-values:true --set prime-index:true
+
+# [01/Jul/2020:10:46:39.460 +0000] conn=107 op=319 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.144.4 to=192.168.144.2
+# Undo command: dsconfig delete-local-db-index --backend-name userRoot --index-name tokenMgtLastStatusError                           
+dsconfig create-local-db-index --backend-name userRoot --index-name tokenMgtLastStatusError --set index-type:presence --set prime-index:true
+
+

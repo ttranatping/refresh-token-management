@@ -339,7 +339,7 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 			else
 				serverContext.logMessage(LogSeverity.INFO,
 						"TokenMgt object does not have access token with valid expiry. Treating this request as if it requires a refreshed token.");
-
+				
 		} else
 			serverContext.logMessage(LogSeverity.INFO,
 					"TokenMgt object does not have access token. Treating this request as if it requires a refreshed token.");
@@ -412,9 +412,9 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 
 		if (tokenMgtAccessToken.containsKey("exp") || tokenMgtAccessToken.get("exp") instanceof Long) {
 			Long expiryEpochSeconds = (Long) tokenMgtAccessToken.get("exp");
-
+			
 			Long compareEpochSeconds = Instant.now().getEpochSecond() + refreshAdvancePeriodSeconds;
-
+			
 			serverContext.logMessage(LogSeverity.INFO,
 					String.format("TokenMgt compare expiry - %s, %s.", expiryEpochSeconds, compareEpochSeconds));
 
@@ -455,14 +455,14 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 
 		String accessTokenJSON = TokenMgtHelper.getJWTJSON(accessToken);
 		String idTokenJSON = TokenMgtHelper.getJWTJSON(idToken);
-
+		
 		List<Modification> mods = new ArrayList<Modification>(5);
 		TokenMgtHelper.addModification(mods, "tokenMgtAccessTokenJWT", accessToken);
 		TokenMgtHelper.addModification(mods, "tokenMgtRefreshToken", refreshToken);
 		TokenMgtHelper.addModification(mods, "tokenMgtIDTokenJWT", idToken);
 		TokenMgtHelper.addModification(mods, "tokenMgtAccessTokenJSON", accessTokenJSON);
 		TokenMgtHelper.addModification(mods, "tokenMgtIDTokenJSON", idTokenJSON);
-
+		
 		serverContext.getClientRootConnection(true).modify(entry.getDN(), mods);
 
 		TokenMgtHelper.addAttribute(entry, "tokenMgtAccessTokenJWT", accessToken);
