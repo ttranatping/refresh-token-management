@@ -57,7 +57,7 @@ public class TokenMgtHelper {
 			return;
 
 		Attribute tokenMgtLastStatusError = new Attribute(attributeName, attributeValue);
-		entry.addAttribute(tokenMgtLastStatusError);
+		entry.setAttribute(tokenMgtLastStatusError);
 
 	}
 
