@@ -321,7 +321,7 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 
 		// omit if refresh token not available
 		if (!entry.hasAttribute("tokenMgtRefreshToken")) {
-			updateError(entry, "Entry missing refresh token.");
+			serverContext.logMessage(LogSeverity.INFO, "Missing refresh token. Skipping.");
 			return SearchEntryPluginResult.SUCCESS;
 		}
 
