@@ -38,8 +38,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory.utilities.TokenMgtHelper;
 import com.unboundid.directory.sdk.common.types.LogSeverity;
-import com.unboundid.directory.sdk.common.types.UpdatableEntry;
-import com.unboundid.directory.sdk.ds.types.SearchEntryPluginResult;
 import com.unboundid.directory.sdk.sync.config.SyncSourceConfig;
 import com.unboundid.directory.sdk.sync.scripting.ScriptedSyncSource;
 import com.unboundid.directory.sdk.sync.types.ChangeRecord;
@@ -54,7 +52,6 @@ import com.unboundid.ldap.sdk.LDAPConnectionOptions;
 import com.unboundid.ldap.sdk.LDAPConnectionPool;
 import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.LDAPSearchException;
-import com.unboundid.ldap.sdk.Modification;
 import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchResultEntry;
 import com.unboundid.ldap.sdk.SearchScope;
@@ -291,8 +288,10 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 		String filter = String.format(CONST_DEFAULT_FILTER, "tokenMgtAccessTokenJSON", compareEpochSeconds);
 		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, String.format("TokenMgt: filter=%s", filter));
 		SearchResult searchResult = null;
+		String [] attributes = new String[1];
+		attributes[0] = "tokenMgtRefreshToken";
 		try {
-			searchResult = ldapConnection.search(baseDN, SearchScope.SUB, filter, new String[0]);
+			searchResult = ldapConnection.search(baseDN, SearchScope.SUB, filter, attributes);
 		} catch (LDAPSearchException e) {
 			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
 					String.format("TokenMgt: issue querying=%s", e.getExceptionMessage()));
@@ -313,6 +312,9 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 
 				bldr.changedAttributes(changeAttributeNames);
 				bldr.addProperty("objectClass", "tokenMgt");
+				if(searchEntry.hasAttribute("tokenMgtRefreshToken"))
+					bldr.addProperty("tokenMgtRefreshToken", searchEntry.getAttributeValue("tokenMgtRefreshToken"));
+					
 				bldr.changeTime(System.currentTimeMillis());
 
 				ChangeRecord record = bldr.build();
@@ -340,14 +342,9 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 		this.serverContext.logMessage(LogSeverity.DEBUG, String.format("TokenMgt: fetching entry, DN=%s", dn));
 
 		Entry returnEntry = new Entry(dn);
-		returnEntry.addAttribute("tokenMgtExpiringToken", "true");
 		returnEntry.addAttribute("objectClass", "tokenMgt");
 
 		try {
-			SearchResultEntry entry = this.ldapConnection.getEntry(dn.toString(), "tokenMgtRefreshToken");
-			if (entry == null)
-				throw new Exception("Could not load entry");
-			
 			SearchResultEntry clientObjectEntry = this.ldapConnection.getEntry(clientObjectDN.toString(),
 					"tokenMgtConfigClientAssertionAudience", "tokenMgtConfigClientAssertionJWK",
 					"tokenMgtConfigTokenEndpoint", "ou");
@@ -361,7 +358,7 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 				return returnEntry;
 			}
 
-			String refreshToken = entry.getAttributeValue("tokenMgtRefreshToken");
+			String refreshToken = record.getProperty("tokenMgtRefreshToken").toString();
 
 			String clientId = clientObjectEntry.getAttributeValue("ou");
 			String audience = clientObjectEntry.getAttributeValue("tokenMgtConfigClientAssertionAudience");
