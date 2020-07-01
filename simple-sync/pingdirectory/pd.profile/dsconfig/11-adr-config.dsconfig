@@ -261,7 +261,7 @@ dsconfig create-plugin --plugin-name TokenManagement-Add-ExchangeCode --type gro
 
 # [30/Jun/2020:13:00:18.947 +0000] conn=11 op=154 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.32.2 to=192.168.32.3
 # Undo command: dsconfig delete-request-criteria --criteria-name TokenMgtSearchCriteria
-dsconfig create-request-criteria --criteria-name TokenMgtSearchCriteria --type simple --set operation-type:search --set "all-included-target-entry-filter:(|(objectClass=tokenMgt)(objectClass=organizationalUnit))"
+dsconfig create-request-criteria --criteria-name TokenMgtSearchCriteria --type simple --set operation-type:search --set "all-included-target-entry-filter:(|(objectClass=tokenMgt)(objectClass=organizationalUnit)(tokenMgtRefreshToken))"
 
 
 # [01/Jul/2020:01:49:40.445 +0000] Offline changes by root
@@ -281,7 +281,10 @@ dsconfig create-json-field-constraints --attribute-type tokenMgtAccessTokenJSON 
 
 # [01/Jul/2020:12:10:48.764 +0000] conn=219 op=390 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.160.2 to=192.168.160.4
 # Undo command: dsconfig delete-local-db-index --backend-name userRoot --index-name tokenMgtLastStatusError                           
-dsconfig create-local-db-index --backend-name userRoot --index-name tokenMgtLastStatusError --set index-type:equality --set prime-index:true
+dsconfig create-local-db-index --backend-name userRoot --index-name tokenMgtLastStatusError --set index-type:present --set prime-index:true
 
+# [01/Jul/2020:12:10:48.764 +0000] conn=219 op=390 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.160.2 to=192.168.160.4
+# Undo command: dsconfig delete-local-db-index --backend-name userRoot --index-name tokenMgtRefreshToken
+dsconfig create-local-db-index --backend-name userRoot --index-name tokenMgtRefreshToken --set index-type:present --set prime-index:true
 
 
