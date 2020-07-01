@@ -281,10 +281,10 @@ dsconfig create-json-field-constraints --attribute-type tokenMgtAccessTokenJSON 
 
 # [01/Jul/2020:12:10:48.764 +0000] conn=219 op=390 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.160.2 to=192.168.160.4
 # Undo command: dsconfig delete-local-db-index --backend-name userRoot --index-name tokenMgtLastStatusError                           
-dsconfig create-local-db-index --backend-name userRoot --index-name tokenMgtLastStatusError --set index-type:present --set prime-index:true
+dsconfig create-local-db-index --backend-name userRoot --index-name tokenMgtLastStatusError --set index-type:presence --set prime-index:true
 
 # [01/Jul/2020:12:10:48.764 +0000] conn=219 op=390 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.160.2 to=192.168.160.4
 # Undo command: dsconfig delete-local-db-index --backend-name userRoot --index-name tokenMgtRefreshToken
-dsconfig create-local-db-index --backend-name userRoot --index-name tokenMgtRefreshToken --set index-type:present --set prime-index:true
+dsconfig create-local-db-index --backend-name userRoot --index-name tokenMgtRefreshToken --set index-type:presence --set prime-index:true
 
 
