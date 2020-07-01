@@ -256,4 +256,14 @@ dsconfig create-request-criteria --criteria-name TokenMgtCriteria --type simple 
 
 # [30/Jun/2020:13:50:53.882 +0000] conn=6 op=157 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.80.2 to=192.168.80.3
 # Undo command: dsconfig delete-plugin --plugin-name TokenManagement-Add-ExchangeCode
-dsconfig create-plugin --plugin-name TokenManagement-Add-ExchangeCode --type groovy-scripted --set enabled:true --set plugin-type:preparseadd --set script-argument:mtls-keystore-
+dsconfig create-plugin --plugin-name TokenManagement-Add-ExchangeCode --type groovy-scripted --set enabled:true --set plugin-type:preparseadd --set script-argument:mtls-keystore-ca-location=/tmp/server-profile/scripts/postman/cert/public.cer --set script-argument:mtls-keystore-location=/tmp/server-profile/scripts/postman/cert/network.p12 --set 'script-argument:mtls-keystore-password=P@ssword1' --set script-class:com.pingidentity.westpac.tokenmgt.pingdirectory.TokenMgtExchangeCodePlugin --set request-criteria:TokenMgtCriteria                                        
+
+
+# [30/Jun/2020:13:00:18.947 +0000] conn=11 op=154 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.32.2 to=192.168.32.3
+# Undo command: dsconfig delete-request-criteria --criteria-name TokenMgtSearchCriteria
+dsconfig create-request-criteria --criteria-name TokenMgtSearchCriteria --type simple --set operation-type:search --set "all-included-target-entry-filter:(objectClass=tokenMgt)"
+
+
+# [30/Jun/2020:13:50:53.882 +0000] conn=6 op=157 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.80.2 to=192.168.80.3
+# Undo command: dsconfig delete-plugin --plugin-name TokenManagement-SearchEntry-RefreshToken
+dsconfig create-plugin --plugin-name TokenManagement-SearchEntry-RefreshToken --type groovy-scripted --set enabled:true --set plugin-type:searchresultentry --set script-argument:mtls-keystore-ca-location=/tmp/server-profile/scripts/postman/cert/public.cer --set script-argument:mtls-keystore-location=/tmp/server-profile/scripts/postman/cert/network.p12 --set 'script-argument:mtls-keystore-password=P@ssword1' --set script-class:com.pingidentity.westpac.tokenmgt.pingdirectory.TokenMgtRetrieveRefreshTokenPlugin --set request-criteria:TokenMgtSearchCriteria

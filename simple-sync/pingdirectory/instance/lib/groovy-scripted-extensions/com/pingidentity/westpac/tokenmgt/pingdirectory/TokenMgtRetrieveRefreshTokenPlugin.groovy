@@ -27,6 +27,7 @@
 package com.pingidentity.westpac.tokenmgt.pingdirectory;
 
 import java.security.Security;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,18 +37,22 @@ import org.json.simple.JSONObject;
 
 import com.pingidentity.westpac.tokenmgt.pingdirectory.utilities.JwtUtilities;
 import com.pingidentity.westpac.tokenmgt.pingdirectory.utilities.TokenMgtHelper;
-import com.unboundid.directory.sdk.common.operation.UpdatableAddRequest;
-import com.unboundid.directory.sdk.common.operation.UpdatableAddResult;
-import com.unboundid.directory.sdk.common.types.ActiveOperationContext;
+import com.unboundid.directory.sdk.common.operation.SearchRequest;
+import com.unboundid.directory.sdk.common.operation.UpdatableSearchResult;
+import com.unboundid.directory.sdk.common.types.ActiveSearchOperationContext;
 import com.unboundid.directory.sdk.common.types.Entry;
 import com.unboundid.directory.sdk.common.types.UpdatableEntry;
 import com.unboundid.directory.sdk.ds.config.PluginConfig;
 import com.unboundid.directory.sdk.ds.scripting.ScriptedPlugin;
 import com.unboundid.directory.sdk.ds.types.DirectoryServerContext;
-import com.unboundid.directory.sdk.ds.types.PreParsePluginResult;
+import com.unboundid.directory.sdk.ds.types.SearchEntryPluginResult;
 import com.unboundid.ldap.sdk.Attribute;
+import com.unboundid.ldap.sdk.Control;
 import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.LDAPInterface;
+import com.unboundid.ldap.sdk.Modification;
 import com.unboundid.ldap.sdk.ResultCode;
+import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.util.args.ArgumentException;
 import com.unboundid.util.args.ArgumentParser;
 import com.unboundid.util.args.StringArgument;
@@ -64,7 +69,7 @@ import com.unboundid.util.args.StringArgument;
  * user from accessing.</LI>
  * </UL>
  */
-public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
+public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 
 	private static final String CONFIG_MTLS_KEYSTORE_CA_LOCATION = "mtls-keystore-ca-location";
 
@@ -90,7 +95,7 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 	 * include a default constructor, but any initialization should generally be
 	 * done in the {@code initializePlugin} method.
 	 */
-	public TokenMgtExchangeCodePlugin() {
+	public TokenMgtRetrieveRefreshTokenPlugin() {
 
 		Security.addProvider(new BouncyCastleProvider());
 
@@ -263,16 +268,27 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 	 *
 	 * @return Information about the result of the plugin processing.
 	 */
-	@Override()
-	public PreParsePluginResult doPreParse(final ActiveOperationContext operationContext,
-			final UpdatableAddRequest request, final UpdatableAddResult result) {
+	  @Override()
+	  public SearchEntryPluginResult doSearchEntry(
+	              final ActiveSearchOperationContext operationContext,
+	              final SearchRequest request, final UpdatableSearchResult result,
+	              final UpdatableEntry entry, final List<Control> controls) {
 
-		UpdatableEntry entry = request.getEntry();
-
+		SearchScope scope = request.getScope();		
+		if(scope != SearchScope.BASE)
+			return SearchEntryPluginResult.SUCCESS;
 		String objectClass = entry.getAttribute("objectClass").get(0).getValue();
 
 		if (!objectClass.equals("tokenMgt"))
-			return PreParsePluginResult.SUCCESS;
+			return SearchEntryPluginResult.SUCCESS;
+
+		//omit if refresh token not available
+		if (!entry.hasAttribute("tokenMgtRefreshToken")) {
+			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
+					"Entry missing refresh token.");
+			entry.addAttribute(tokenMgtLastStatusError);
+			return SearchEntryPluginResult.SUCCESS;
+		}
 
 		Entry parentEntry = null;
 
@@ -287,7 +303,7 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
 					"Error loading parent: " + e.getMessage());
 			entry.addAttribute(tokenMgtLastStatusError);
-			return PreParsePluginResult.SUCCESS;
+			return SearchEntryPluginResult.SUCCESS;
 		}
 
 		if (!parentEntry.hasAttribute("tokenMgtConfigClientAssertionAudience")
@@ -296,7 +312,7 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
 					"Parent missing configuration.");
 			entry.addAttribute(tokenMgtLastStatusError);
-			return PreParsePluginResult.SUCCESS;
+			return SearchEntryPluginResult.SUCCESS;
 		}
 
 		// if the request is missing any of these attributes,
@@ -306,13 +322,11 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
 					"Entry missing required information.");
 			entry.addAttribute(tokenMgtLastStatusError);
-			return PreParsePluginResult.SUCCESS;
+			return SearchEntryPluginResult.SUCCESS;
 		}
 
-		String tokenMgtAuthCode = entry.getAttribute("tokenMgtAuthCode").get(0).getValue();
+		String tokenMgtRefreshToken = entry.getAttribute("tokenMgtRefreshToken").get(0).getValue();
 		String tokenMgtClientId = entry.getAttribute("tokenMgtClientId").get(0).getValue();
-		String tokenMgtExpectedNonce = entry.getAttribute("tokenMgtExpectedNonce").get(0).getValue();
-		String tokenMgtRedirectURI = entry.getAttribute("tokenMgtRedirectURI").get(0).getValue();
 
 		String tokenMgtConfigClientAssertionAudience = parentEntry.getAttribute("tokenMgtConfigClientAssertionAudience")
 				.get(0).getValue();
@@ -321,17 +335,17 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		String tokenMgtConfigTokenEndpoint = parentEntry.getAttribute("tokenMgtConfigTokenEndpoint").get(0).getValue();
 
 		try {
-			processCallback(entry, keystoreFileLocation, keystoreRootCAFileLocation, keystorePassword, tokenMgtAuthCode,
-					tokenMgtClientId, tokenMgtRedirectURI, tokenMgtConfigClientAssertionAudience, tokenMgtExpectedNonce,
+			processRefreshToken(entry, keystoreFileLocation, keystoreRootCAFileLocation, keystorePassword, tokenMgtRefreshToken,
+					tokenMgtClientId, tokenMgtConfigClientAssertionAudience, 
 					tokenMgtConfigClientAssertionJWK, tokenMgtConfigTokenEndpoint, this.isIgnoreSSLErrors);
 		} catch (Exception e) {
 			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
 					"Error processing callback: " + e.getMessage());
 			entry.addAttribute(tokenMgtLastStatusError);
-			return PreParsePluginResult.SUCCESS;
+			return SearchEntryPluginResult.SUCCESS;
 		}
 
-		return PreParsePluginResult.SUCCESS;
+		return SearchEntryPluginResult.SUCCESS;
 
 	}
 
@@ -341,9 +355,9 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		return parent;
 	}
 
-	public static void processCallback(UpdatableEntry entry, String keystoreFileLocation,
-			String keystoreRootCAFileLocation, String keystorePassword, String code, String clientId,
-			String redirectUri, String audience, String expectedNonce, String jwk, String tokenEndpoint,
+	public void processRefreshToken(UpdatableEntry entry, String keystoreFileLocation,
+			String keystoreRootCAFileLocation, String keystorePassword, String currentRefreshToken, String clientId,
+			String audience, String jwk, String tokenEndpoint,
 			boolean isIgnoreSSLErrors) throws Exception {
 		Map<String, String> headers = new HashMap<String, String>();
 		headers.put("Content-Type", "application/x-www-form-urlencoded");
@@ -352,8 +366,8 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		String clientAuthenticationJWT = JwtUtilities.getClientJWTAuthentication(clientId, audience, jwk);
 
 		String queryString = String.format(
-				"code=%s&client_id=%s&grant_type=authorization_code&redirect_uri=%s&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer&client_assertion=%s",
-				code, clientId, redirectUri, clientAuthenticationJWT);
+				"refresh_token=%s&client_id=%s&grant_type=refresh_token&redirect_uri=%s&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer&client_assertion=%s",
+				currentRefreshToken, clientId, clientAuthenticationJWT);
 
 		JSONObject jsonRespObj = TokenMgtHelper.getHttpJSONResponse(tokenEndpoint, queryString, keystoreFileLocation,
 				keystoreRootCAFileLocation, keystorePassword, allowedProtocols, isIgnoreSSLErrors);
@@ -364,16 +378,27 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 				: null;
 		String idToken = (jsonRespObj.containsKey("id_token")) ? jsonRespObj.get("id_token").toString() : null;
 
+		
 		String accessTokenJSON = TokenMgtHelper.getJWTJSON(accessToken);
 		String idTokenJSON = TokenMgtHelper.getJWTJSON(idToken);
 
+		LDAPInterface ldapInterface = serverContext.getClientRootConnection(true);
+		
+		List<Modification> mods = new ArrayList<Modification>(5);
+		
+		TokenMgtHelper.addModification(mods, "tokenMgtAccessTokenJWT", accessToken);
+		TokenMgtHelper.addModification(mods, "tokenMgtRefreshToken", refreshToken);
+		TokenMgtHelper.addModification(mods, "tokenMgtIDTokenJWT", idToken);
+		TokenMgtHelper.addModification(mods, "tokenMgtAccessTokenJSON", accessTokenJSON);
+		TokenMgtHelper.addModification(mods, "tokenMgtIDTokenJSON", idTokenJSON);
+		
+		ldapInterface.modify(entry.getDN(), mods);
+		
 		TokenMgtHelper.addAttribute(entry, "tokenMgtAccessTokenJWT", accessToken);
 		TokenMgtHelper.addAttribute(entry, "tokenMgtRefreshToken", refreshToken);
 		TokenMgtHelper.addAttribute(entry, "tokenMgtIDTokenJWT", idToken);
 		TokenMgtHelper.addAttribute(entry, "tokenMgtAccessTokenJSON", accessTokenJSON);
 		TokenMgtHelper.addAttribute(entry, "tokenMgtIDTokenJSON", idTokenJSON);
-
 	}
-
 
 }
