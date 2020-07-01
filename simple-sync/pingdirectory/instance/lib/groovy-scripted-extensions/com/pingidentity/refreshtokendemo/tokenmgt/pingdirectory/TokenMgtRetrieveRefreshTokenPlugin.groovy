@@ -384,7 +384,7 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 					tokenMgtRefreshToken, tokenMgtClientId, tokenMgtConfigClientAssertionAudience,
 					tokenMgtConfigClientAssertionJWK, tokenMgtConfigTokenEndpoint, this.isIgnoreSSLErrors);
 		} catch (Exception e) {
-			updateError(entry, String.format("Error processing callback: ", e.getMessage()));
+			updateError(entry, String.format("Error processing callback: %s", e.getMessage()));
 			return SearchEntryPluginResult.SUCCESS;
 		}
 
