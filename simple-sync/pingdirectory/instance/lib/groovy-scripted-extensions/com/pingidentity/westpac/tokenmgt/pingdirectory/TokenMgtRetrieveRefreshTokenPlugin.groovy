@@ -27,26 +27,33 @@
 package com.pingidentity.westpac.tokenmgt.pingdirectory;
 
 import java.security.Security;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import com.pingidentity.westpac.tokenmgt.pingdirectory.utilities.JwtUtilities;
 import com.pingidentity.westpac.tokenmgt.pingdirectory.utilities.TokenMgtHelper;
-import com.unboundid.directory.sdk.common.operation.UpdatableAddRequest;
-import com.unboundid.directory.sdk.common.operation.UpdatableAddResult;
-import com.unboundid.directory.sdk.common.types.ActiveOperationContext;
+import com.unboundid.directory.sdk.common.operation.SearchRequest;
+import com.unboundid.directory.sdk.common.operation.UpdatableSearchResult;
+import com.unboundid.directory.sdk.common.types.ActiveSearchOperationContext;
 import com.unboundid.directory.sdk.common.types.Entry;
+import com.unboundid.directory.sdk.common.types.LogSeverity;
 import com.unboundid.directory.sdk.common.types.UpdatableEntry;
 import com.unboundid.directory.sdk.ds.config.PluginConfig;
 import com.unboundid.directory.sdk.ds.scripting.ScriptedPlugin;
 import com.unboundid.directory.sdk.ds.types.DirectoryServerContext;
-import com.unboundid.directory.sdk.ds.types.PreParsePluginResult;
+import com.unboundid.directory.sdk.ds.types.SearchEntryPluginResult;
 import com.unboundid.ldap.sdk.Attribute;
+import com.unboundid.ldap.sdk.Control;
 import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.Modification;
 import com.unboundid.ldap.sdk.ResultCode;
 import com.unboundid.util.args.ArgumentException;
 import com.unboundid.util.args.ArgumentParser;
@@ -64,7 +71,7 @@ import com.unboundid.util.args.StringArgument;
  * user from accessing.</LI>
  * </UL>
  */
-public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
+public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 
 	private static final String CONFIG_MTLS_KEYSTORE_CA_LOCATION = "mtls-keystore-ca-location";
 
@@ -74,12 +81,20 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 
 	private static final String CONFIG_IGNORE_SSL_ERRORS = "ignore-ssl-errors";
 
+	private static final String CONFIG_REFRESH_ADVANCE_PERIOD_SECONDS = "refresh-advance-seconds";
+
+	private static final JSONParser parser = new JSONParser();
+
+	private static final Long DEFAULT_REFRESH_ADVANCE_PERIOD_SECONDS = 120L;
+
 	// The server context for the server in which this extension is running.
 	private DirectoryServerContext serverContext;
 
 	private String keystoreFileLocation;
 	private String keystoreRootCAFileLocation;
 	private String keystorePassword;
+
+	private Long refreshAdvancePeriodSeconds = DEFAULT_REFRESH_ADVANCE_PERIOD_SECONDS;
 
 	private static String[] allowedProtocols = null;
 
@@ -90,7 +105,7 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 	 * include a default constructor, but any initialization should generally be
 	 * done in the {@code initializePlugin} method.
 	 */
-	public TokenMgtExchangeCodePlugin() {
+	public TokenMgtRetrieveRefreshTokenPlugin() {
 
 		Security.addProvider(new BouncyCastleProvider());
 
@@ -152,6 +167,16 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 
 		parser.addArgument(new StringArgument(shortIdentifier_i, longIdentifier_i, required_i, maxOccurrences_i,
 				placeholder_i, description_i));
+
+		Character shortIdentifier_g = 'g';
+		String longIdentifier_g = CONFIG_REFRESH_ADVANCE_PERIOD_SECONDS;
+		boolean required_g = false;
+		int maxOccurrences_g = 1;
+		String placeholder_g = String.valueOf(DEFAULT_REFRESH_ADVANCE_PERIOD_SECONDS);
+		String description_g = "Time in advance before refreshing a token from the token expiry";
+
+		parser.addArgument(new StringArgument(shortIdentifier_g, longIdentifier_g, required_g, maxOccurrences_g,
+				placeholder_g, description_g));
 
 	}
 
@@ -238,6 +263,12 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		final StringArgument arg3 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_PASSWORD);
 		this.keystorePassword = arg3.getValue();
 
+		final StringArgument arg4 = (StringArgument) parser.getNamedArgument(CONFIG_REFRESH_ADVANCE_PERIOD_SECONDS);
+		if (arg4 != null && arg4.isPresent())
+			this.refreshAdvancePeriodSeconds = Long.parseLong(arg4.getValue());
+		else
+			this.refreshAdvancePeriodSeconds = DEFAULT_REFRESH_ADVANCE_PERIOD_SECONDS;
+
 		return rc;
 	}
 
@@ -264,15 +295,54 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 	 * @return Information about the result of the plugin processing.
 	 */
 	@Override()
-	public PreParsePluginResult doPreParse(final ActiveOperationContext operationContext,
-			final UpdatableAddRequest request, final UpdatableAddResult result) {
+	public SearchEntryPluginResult doSearchEntry(final ActiveSearchOperationContext operationContext,
+			final SearchRequest request, final UpdatableSearchResult result, final UpdatableEntry entry,
+			final List<Control> controls) {
 
-		UpdatableEntry entry = request.getEntry();
+		serverContext.logMessage(LogSeverity.INFO, String.format("TokenMgt DN: %s", entry.getDN()));
 
-		String objectClass = entry.getAttribute("objectClass").get(0).getValue();
+		if (result.toLDAPSDKResult().getEntryCount() > 1) {
+			serverContext.logMessage(LogSeverity.INFO,
+					String.format("TokenMgt entry search count is greater than 1. Skipping."));
+			return SearchEntryPluginResult.SUCCESS;
+		}
 
-		if (!objectClass.equals("tokenMgt"))
-			return PreParsePluginResult.SUCCESS;
+		boolean hasTokenMgtClass = false;
+
+		for (Attribute objectClassObj : entry.getAttribute("objectClass")) {
+			if (objectClassObj.hasValue("tokenMgt"))
+				hasTokenMgtClass = true;
+		}
+
+		if (!hasTokenMgtClass)
+			return SearchEntryPluginResult.SUCCESS;
+
+		serverContext.logMessage(LogSeverity.INFO, "TokenMgt object, continuing...");
+
+		// omit if refresh token not available
+		if (!entry.hasAttribute("tokenMgtRefreshToken")) {
+			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
+					"Entry missing refresh token.");
+			entry.addAttribute(tokenMgtLastStatusError);
+			return SearchEntryPluginResult.SUCCESS;
+		}
+
+		if (entry.hasAttribute("tokenMgtAccessTokenJWT") && entry.hasAttribute("tokenMgtAccessTokenJSON")) {
+			String tokenMgtAccessTokenJSON = entry.getAttribute("tokenMgtAccessTokenJSON").get(0).getValue();
+
+			if (!hasExpired(tokenMgtAccessTokenJSON, refreshAdvancePeriodSeconds))
+			{
+				serverContext.logMessage(LogSeverity.INFO,
+						"TokenMgt object has not expired. Skipping...");
+				return SearchEntryPluginResult.SUCCESS;
+			}
+			else
+				serverContext.logMessage(LogSeverity.INFO,
+						"TokenMgt object does not have access token with valid expiry. Treating this request as if it requires a refreshed token.");
+
+		} else
+			serverContext.logMessage(LogSeverity.INFO,
+					"TokenMgt object does not have access token. Treating this request as if it requires a refreshed token.");
 
 		Entry parentEntry = null;
 
@@ -287,7 +357,7 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
 					"Error loading parent: " + e.getMessage());
 			entry.addAttribute(tokenMgtLastStatusError);
-			return PreParsePluginResult.SUCCESS;
+			return SearchEntryPluginResult.SUCCESS;
 		}
 
 		if (!parentEntry.hasAttribute("tokenMgtConfigClientAssertionAudience")
@@ -296,23 +366,20 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
 					"Parent missing configuration.");
 			entry.addAttribute(tokenMgtLastStatusError);
-			return PreParsePluginResult.SUCCESS;
+			return SearchEntryPluginResult.SUCCESS;
 		}
 
 		// if the request is missing any of these attributes,
 		// it will likely error downstream. The error is not handled here.
-		if (!entry.hasAttribute("tokenMgtAuthCode") || !entry.hasAttribute("tokenMgtClientId")
-				|| !entry.hasAttribute("tokenMgtExpectedNonce") || !entry.hasAttribute("tokenMgtRedirectURI")) {
+		if (!entry.hasAttribute("tokenMgtRefreshToken") || !entry.hasAttribute("tokenMgtClientId")) {
 			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
-					"Entry missing required information.");
+					"Entry missing refresh token. Skipping.");
 			entry.addAttribute(tokenMgtLastStatusError);
-			return PreParsePluginResult.SUCCESS;
+			return SearchEntryPluginResult.SUCCESS;
 		}
 
-		String tokenMgtAuthCode = entry.getAttribute("tokenMgtAuthCode").get(0).getValue();
+		String tokenMgtRefreshToken = entry.getAttribute("tokenMgtRefreshToken").get(0).getValue();
 		String tokenMgtClientId = entry.getAttribute("tokenMgtClientId").get(0).getValue();
-		String tokenMgtExpectedNonce = entry.getAttribute("tokenMgtExpectedNonce").get(0).getValue();
-		String tokenMgtRedirectURI = entry.getAttribute("tokenMgtRedirectURI").get(0).getValue();
 
 		String tokenMgtConfigClientAssertionAudience = parentEntry.getAttribute("tokenMgtConfigClientAssertionAudience")
 				.get(0).getValue();
@@ -321,18 +388,41 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		String tokenMgtConfigTokenEndpoint = parentEntry.getAttribute("tokenMgtConfigTokenEndpoint").get(0).getValue();
 
 		try {
-			processCallback(entry, keystoreFileLocation, keystoreRootCAFileLocation, keystorePassword, tokenMgtAuthCode,
-					tokenMgtClientId, tokenMgtRedirectURI, tokenMgtConfigClientAssertionAudience, tokenMgtExpectedNonce,
+			processRefreshToken(entry, keystoreFileLocation, keystoreRootCAFileLocation, keystorePassword,
+					tokenMgtRefreshToken, tokenMgtClientId, tokenMgtConfigClientAssertionAudience,
 					tokenMgtConfigClientAssertionJWK, tokenMgtConfigTokenEndpoint, this.isIgnoreSSLErrors);
 		} catch (Exception e) {
 			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
 					"Error processing callback: " + e.getMessage());
 			entry.addAttribute(tokenMgtLastStatusError);
-			return PreParsePluginResult.SUCCESS;
+			return SearchEntryPluginResult.SUCCESS;
 		}
 
-		return PreParsePluginResult.SUCCESS;
+		return SearchEntryPluginResult.SUCCESS;
 
+	}
+
+	private boolean hasExpired(String tokenMgtAccessTokenJSON, Long refreshAdvancePeriodSeconds) {
+		JSONObject tokenMgtAccessToken = null;
+		try {
+			tokenMgtAccessToken = (JSONObject) parser.parse(tokenMgtAccessTokenJSON);
+		} catch (ParseException e) {
+			return true;
+		}
+
+		if (tokenMgtAccessToken.containsKey("exp") || tokenMgtAccessToken.get("exp") instanceof Long) {
+			Long expiryEpochSeconds = (Long) tokenMgtAccessToken.get("exp");
+
+			Long compareEpochSeconds = Instant.now().getEpochSecond() + refreshAdvancePeriodSeconds;
+
+			serverContext.logMessage(LogSeverity.INFO,
+					String.format("TokenMgt compare expiry - %s, %s.", expiryEpochSeconds, compareEpochSeconds));
+
+			if (expiryEpochSeconds > compareEpochSeconds) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static String getParentDN(String dn) {
@@ -341,10 +431,9 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		return parent;
 	}
 
-	public static void processCallback(UpdatableEntry entry, String keystoreFileLocation,
-			String keystoreRootCAFileLocation, String keystorePassword, String code, String clientId,
-			String redirectUri, String audience, String expectedNonce, String jwk, String tokenEndpoint,
-			boolean isIgnoreSSLErrors) throws Exception {
+	public void processRefreshToken(UpdatableEntry entry, String keystoreFileLocation,
+			String keystoreRootCAFileLocation, String keystorePassword, String currentRefreshToken, String clientId,
+			String audience, String jwk, String tokenEndpoint, boolean isIgnoreSSLErrors) throws Exception {
 		Map<String, String> headers = new HashMap<String, String>();
 		headers.put("Content-Type", "application/x-www-form-urlencoded");
 		headers.put("Accept", "application/json");
@@ -352,8 +441,8 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		String clientAuthenticationJWT = JwtUtilities.getClientJWTAuthentication(clientId, audience, jwk);
 
 		String queryString = String.format(
-				"code=%s&client_id=%s&grant_type=authorization_code&redirect_uri=%s&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer&client_assertion=%s",
-				code, clientId, redirectUri, clientAuthenticationJWT);
+				"refresh_token=%s&client_id=%s&grant_type=refresh_token&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer&client_assertion=%s",
+				currentRefreshToken, clientId, clientAuthenticationJWT);
 
 		JSONObject jsonRespObj = TokenMgtHelper.getHttpJSONResponse(tokenEndpoint, queryString, keystoreFileLocation,
 				keystoreRootCAFileLocation, keystorePassword, allowedProtocols, isIgnoreSSLErrors);
@@ -367,13 +456,20 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 		String accessTokenJSON = TokenMgtHelper.getJWTJSON(accessToken);
 		String idTokenJSON = TokenMgtHelper.getJWTJSON(idToken);
 
+		List<Modification> mods = new ArrayList<Modification>(5);
+		TokenMgtHelper.addModification(mods, "tokenMgtAccessTokenJWT", accessToken);
+		TokenMgtHelper.addModification(mods, "tokenMgtRefreshToken", refreshToken);
+		TokenMgtHelper.addModification(mods, "tokenMgtIDTokenJWT", idToken);
+		TokenMgtHelper.addModification(mods, "tokenMgtAccessTokenJSON", accessTokenJSON);
+		TokenMgtHelper.addModification(mods, "tokenMgtIDTokenJSON", idTokenJSON);
+
+		serverContext.getClientRootConnection(true).modify(entry.getDN(), mods);
+
 		TokenMgtHelper.addAttribute(entry, "tokenMgtAccessTokenJWT", accessToken);
 		TokenMgtHelper.addAttribute(entry, "tokenMgtRefreshToken", refreshToken);
 		TokenMgtHelper.addAttribute(entry, "tokenMgtIDTokenJWT", idToken);
 		TokenMgtHelper.addAttribute(entry, "tokenMgtAccessTokenJSON", accessTokenJSON);
 		TokenMgtHelper.addAttribute(entry, "tokenMgtIDTokenJSON", idTokenJSON);
-
 	}
-
 
 }
