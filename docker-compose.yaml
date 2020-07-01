@@ -53,6 +53,7 @@ services:
 
   pingdatasync:
     image: pingidentity/pingdatasync:8.1.0.0-EA-alpine-java11-edge
+    command: wait-for pingdirectory:389 -t 300 -- entrypoint.sh start-server
     environment:
       - SERVER_PROFILE_URL=https://github.com/ttranatping/refresh-token-management.git
       - SERVER_PROFILE_PATH=simple-sync/pingdatasync
@@ -71,8 +72,8 @@ services:
       - "2443:443"
     networks:
       - pingnet
-    volumes:
-      - pingdatasync-out:/opt/out
+   # volumes:
+  #    - pingdatasync-out:/opt/out
     #  - ${HOME}/projects/devops/pingidentity-server-profiles/simple-sync/pingdatasync:/opt/in
 
   pingdataconsole:
