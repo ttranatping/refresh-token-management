@@ -274,9 +274,9 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 	              final SearchRequest request, final UpdatableSearchResult result,
 	              final UpdatableEntry entry, final List<Control> controls) {
 
-		SearchScope scope = request.getScope();		
-		if(scope != SearchScope.BASE)
-			return SearchEntryPluginResult.SUCCESS;
+		//SearchScope scope = request.getScope();		
+		//if(scope != SearchScope.BASE)
+		//	return SearchEntryPluginResult.SUCCESS;
 		String objectClass = entry.getAttribute("objectClass").get(0).getValue();
 
 		if (!objectClass.equals("tokenMgt"))
