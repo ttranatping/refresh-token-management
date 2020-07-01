@@ -196,6 +196,16 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 			final ArgumentParser parser) throws LDAPException {
 		serverContext.debugInfo("Beginning plugin initialization");
 
+		setConfig(parser);
+
+		this.serverContext = serverContext;
+
+	}
+	
+	private void setConfig(final ArgumentParser parser)
+	{
+
+
 		final StringArgument arg1 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_CA_LOCATION);
 		this.keystoreRootCAFileLocation = arg1.getValue();
 
@@ -208,8 +218,12 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 		final StringArgument arg4 = (StringArgument) parser.getNamedArgument(CONFIG_IGNORE_SSL_ERRORS);
 		this.isIgnoreSSLErrors = (arg4 != null && arg4.toString().equalsIgnoreCase("true")) ? true : false;
 
-		this.serverContext = serverContext;
-
+		final StringArgument arg5 = (StringArgument) parser.getNamedArgument(CONFIG_REFRESH_ADVANCE_PERIOD_SECONDS);
+		try {
+			this.refreshAdvancePeriodSeconds = Long.parseLong(arg5.getValue());
+		} catch (NumberFormatException e) {
+			this.refreshAdvancePeriodSeconds = DEFAULT_REFRESH_ADVANCE_PERIOD_SECONDS;
+		}
 	}
 
 	/**
@@ -254,20 +268,7 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 
 		ResultCode rc = ResultCode.SUCCESS;
 
-		final StringArgument arg1 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_CA_LOCATION);
-		this.keystoreRootCAFileLocation = arg1.getValue();
-
-		final StringArgument arg2 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_LOCATION);
-		this.keystoreFileLocation = arg2.getValue();
-
-		final StringArgument arg3 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_PASSWORD);
-		this.keystorePassword = arg3.getValue();
-
-		final StringArgument arg4 = (StringArgument) parser.getNamedArgument(CONFIG_REFRESH_ADVANCE_PERIOD_SECONDS);
-		if (arg4 != null && arg4.isPresent())
-			this.refreshAdvancePeriodSeconds = Long.parseLong(arg4.getValue());
-		else
-			this.refreshAdvancePeriodSeconds = DEFAULT_REFRESH_ADVANCE_PERIOD_SECONDS;
+		setConfig(parser);
 
 		return rc;
 	}
