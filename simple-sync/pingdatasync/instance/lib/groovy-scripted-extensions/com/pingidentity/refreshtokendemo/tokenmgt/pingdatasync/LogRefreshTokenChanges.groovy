@@ -26,44 +26,39 @@ import com.unboundid.util.args.ArgumentParser;
 import com.unboundid.util.args.StringArgument;
 
 public class LogRefreshTokenChanges extends ScriptedSyncDestination {
-	
+
 	private static final String CONFIG_LOG_FILE_PATH = "log-file-path";
 	private Logger logger = null;
 	private SyncServerContext serverContext;
-	
+
 	private DateTimeFormatter formatter = null;
-	
+
 	@Override
-	public void defineConfigArguments(ArgumentParser parser)
-	{
+	public void defineConfigArguments(ArgumentParser parser) {
 		try {
-			//yup some weird stuff to make groovy work
+			// yup some weird stuff to make groovy work
 			char f = 'f';
 			parser.addArgument(new StringArgument(f, CONFIG_LOG_FILE_PATH, true, 1, "", "Log file path."));
-			
-		}catch (ArgumentException e) {
-	        serverContext.logMessage(LogSeverity.SEVERE_ERROR,
-	                "LogRefreshTokenChanges: Error setting config arguments");
+
+		} catch (ArgumentException e) {
+			serverContext.logMessage(LogSeverity.SEVERE_ERROR,
+					"LogRefreshTokenChanges: Error setting config arguments");
 		}
 	}
 
 	@Override
-	public void initializeSyncDestination(SyncServerContext serverContext,
-			SyncDestinationConfig config,
-			com.unboundid.util.args.ArgumentParser parser)
-			throws EndpointException {
+	public void initializeSyncDestination(SyncServerContext serverContext, SyncDestinationConfig config,
+			com.unboundid.util.args.ArgumentParser parser) throws EndpointException {
 		super.initializeSyncDestination(serverContext, config, parser);
 		this.serverContext = serverContext;
 
 		String logFilePath = parser.getStringArgument(CONFIG_LOG_FILE_PATH).getValue();
-		
+
 		logger = createLogInstance("ConsentLogger", logFilePath);
 		logger.setLevel(Level.ALL);
-		
-		formatter =
-			    DateTimeFormatter.ofLocalizedDateTime( FormatStyle.SHORT )
-			                     .withLocale( Locale.UK )
-			                     .withZone( ZoneId.systemDefault() );
+
+		formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withLocale(Locale.UK)
+				.withZone(ZoneId.systemDefault());
 
 	}
 
@@ -74,47 +69,54 @@ public class LogRefreshTokenChanges extends ScriptedSyncDestination {
 	}
 
 	@Override
-	public List<Entry> fetchEntry(
-			Entry destEntryMappedFromSrc,
-			SyncOperation operation) {
+	public List<Entry> fetchEntry(Entry destEntryMappedFromSrc, SyncOperation operation) {
 
 		Entry returnEntry = new Entry(destEntryMappedFromSrc.getDN());
 		returnEntry.addAttribute("tokenMgtExpiringToken", "true");
-		returnEntry.addAttribute("tokenMgtAccessTokenJWT", destEntryMappedFromSrc.getAttributeValue("tokenMgtAccessTokenJWT"));
-		returnEntry.addAttribute("objectClass", "tokenMgt");
 		
+		String accessToken = destEntryMappedFromSrc.getAttributeValue("tokenMgtAccessTokenJWT");
+		
+		if(accessToken != null)
+			returnEntry.addAttribute("tokenMgtAccessTokenJWT",
+					accessToken);
+
+		
+		String tokenMgtLastStatusError = destEntryMappedFromSrc.getAttributeValue("tokenMgtLastStatusError");
+		if(tokenMgtLastStatusError != null)
+			returnEntry.addAttribute("tokenMgtLastStatusError",
+				destEntryMappedFromSrc.getAttributeValue("tokenMgtLastStatusError"));
+		
+		returnEntry.addAttribute("objectClass", "tokenMgt");
+
 		List<Entry> returnList = new ArrayList<Entry>();
 		returnList.add(returnEntry);
-		
+
 		return returnList;
 	}
 
 	@Override
-	public void createEntry(Entry entryToCreate, SyncOperation operation)
-			throws EndpointException {
+	public void createEntry(Entry entryToCreate, SyncOperation operation) throws EndpointException {
 
 		logItem(entryToCreate);
 	}
 
 	@Override
-	public void modifyEntry(Entry entryToModify,
-			List<Modification> modsToApply, SyncOperation operation)
+	public void modifyEntry(Entry entryToModify, List<Modification> modsToApply, SyncOperation operation)
 			throws EndpointException {
 
 		logItem(entryToModify);
-		
+
 	}
-	
-	private void logItem(Entry entry)
-	{
+
+	private void logItem(Entry entry) {
 
 		Instant instant = Instant.now();
-		logger.log(Level.INFO, String.format("%s,%s,%s", formatter.format( instant ), entry.getDN(), entry.getAttributeValue("tokenMgtAccessTokenJWT")));
+		logger.log(Level.INFO, String.format("%s,%s,%s,%s", formatter.format(instant), entry.getDN(),
+				entry.getAttributeValue("tokenMgtLastStatusError"), entry.getAttributeValue("tokenMgtAccessTokenJWT")));
 	}
 
 	@Override
-	public void deleteEntry(Entry entryToDelete, SyncOperation operation)
-			throws EndpointException {
+	public void deleteEntry(Entry entryToDelete, SyncOperation operation) throws EndpointException {
 	}
 
 	public static Logger createLogInstance(String packaging, String logFileName) {
@@ -140,5 +142,4 @@ public class LogRefreshTokenChanges extends ScriptedSyncDestination {
 	}
 
 }
-
 

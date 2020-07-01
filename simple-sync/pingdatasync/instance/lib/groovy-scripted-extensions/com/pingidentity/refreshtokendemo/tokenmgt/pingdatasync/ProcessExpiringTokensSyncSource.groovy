@@ -271,18 +271,26 @@ public final class ProcessExpiringTokensSyncSource extends ScriptedSyncSource
 		returnEntry.addAttribute("objectClass", "tokenMgt");
 
 		try {
-			SearchResultEntry entry = this.ldapConnection.getEntry(dn.toString(), "tokenMgtAccessTokenJWT");
+			SearchResultEntry entry = this.ldapConnection.getEntry(dn.toString(), "tokenMgtAccessTokenJWT", "tokenMgtLastStatusError");
 
 			if (entry == null)
 				throw new Exception("Could not load entry");
 
 			String accessToken = entry.getAttributeValue("tokenMgtAccessTokenJWT");
+			String tokenMgtLastStatusError = entry.getAttributeValue("tokenMgtLastStatusError");
 
 			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
 					String.format("TokenMgt: fetched entry, access_token: %s", accessToken));
 
 			returnEntry.addAttribute("tokenMgtExpiringTokenProcess", "true");
-			returnEntry.addAttribute("tokenMgtAccessTokenJWT", accessToken);
+			
+			if(tokenMgtLastStatusError != null)
+				returnEntry.addAttribute("tokenMgtLastStatusError", tokenMgtLastStatusError);
+			
+			if(accessToken != null)
+				returnEntry.addAttribute("tokenMgtAccessTokenJWT", accessToken);
+				
+			
 		} catch (Exception e) {
 
 			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
