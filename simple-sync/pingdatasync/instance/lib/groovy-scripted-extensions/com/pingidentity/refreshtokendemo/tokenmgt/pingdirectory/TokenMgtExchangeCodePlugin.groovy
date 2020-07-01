@@ -27,31 +27,26 @@
 package com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory;
 
 import java.security.Security;
-import java.time.Instant;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
+import com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory.utilities.JwtUtilities;
 import com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory.utilities.TokenMgtHelper;
-import com.unboundid.directory.sdk.common.operation.SearchRequest;
-import com.unboundid.directory.sdk.common.operation.UpdatableSearchResult;
-import com.unboundid.directory.sdk.common.types.ActiveSearchOperationContext;
+import com.unboundid.directory.sdk.common.operation.UpdatableAddRequest;
+import com.unboundid.directory.sdk.common.operation.UpdatableAddResult;
+import com.unboundid.directory.sdk.common.types.ActiveOperationContext;
 import com.unboundid.directory.sdk.common.types.Entry;
-import com.unboundid.directory.sdk.common.types.LogSeverity;
 import com.unboundid.directory.sdk.common.types.UpdatableEntry;
 import com.unboundid.directory.sdk.ds.config.PluginConfig;
 import com.unboundid.directory.sdk.ds.scripting.ScriptedPlugin;
 import com.unboundid.directory.sdk.ds.types.DirectoryServerContext;
-import com.unboundid.directory.sdk.ds.types.SearchEntryPluginResult;
+import com.unboundid.directory.sdk.ds.types.PreParsePluginResult;
 import com.unboundid.ldap.sdk.Attribute;
-import com.unboundid.ldap.sdk.Control;
 import com.unboundid.ldap.sdk.LDAPException;
-import com.unboundid.ldap.sdk.Modification;
 import com.unboundid.ldap.sdk.ResultCode;
 import com.unboundid.util.args.ArgumentException;
 import com.unboundid.util.args.ArgumentParser;
@@ -69,7 +64,7 @@ import com.unboundid.util.args.StringArgument;
  * user from accessing.</LI>
  * </UL>
  */
-public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
+public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 
 	private static final String CONFIG_MTLS_KEYSTORE_CA_LOCATION = "mtls-keystore-ca-location";
 
@@ -79,12 +74,6 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 
 	private static final String CONFIG_IGNORE_SSL_ERRORS = "ignore-ssl-errors";
 
-	private static final String CONFIG_REFRESH_ADVANCE_PERIOD_SECONDS = "refresh-advance-seconds";
-
-	private static final JSONParser parser = new JSONParser();
-
-	private static final Long DEFAULT_REFRESH_ADVANCE_PERIOD_SECONDS = 120L;
-
 	// The server context for the server in which this extension is running.
 	private DirectoryServerContext serverContext;
 
@@ -92,18 +81,16 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 	private String keystoreRootCAFileLocation;
 	private String keystorePassword;
 
-	boolean isIgnoreSSLErrors = false;
-
-	private Long refreshAdvancePeriodSeconds = DEFAULT_REFRESH_ADVANCE_PERIOD_SECONDS;
-
 	private static String[] allowedProtocols = null;
+
+	boolean isIgnoreSSLErrors = false;
 
 	/**
 	 * Creates a new instance of this plugin. All plugin implementations must
 	 * include a default constructor, but any initialization should generally be
 	 * done in the {@code initializePlugin} method.
 	 */
-	public TokenMgtRetrieveRefreshTokenPlugin() {
+	public TokenMgtExchangeCodePlugin() {
 
 		Security.addProvider(new BouncyCastleProvider());
 
@@ -166,16 +153,6 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 		parser.addArgument(new StringArgument(shortIdentifier_i, longIdentifier_i, required_i, maxOccurrences_i,
 				placeholder_i, description_i));
 
-		Character shortIdentifier_g = 'g';
-		String longIdentifier_g = CONFIG_REFRESH_ADVANCE_PERIOD_SECONDS;
-		boolean required_g = false;
-		int maxOccurrences_g = 1;
-		String placeholder_g = String.valueOf(DEFAULT_REFRESH_ADVANCE_PERIOD_SECONDS);
-		String description_g = "Time in advance before refreshing a token from the token expiry";
-
-		parser.addArgument(new StringArgument(shortIdentifier_g, longIdentifier_g, required_g, maxOccurrences_g,
-				placeholder_g, description_g));
-
 	}
 
 	/**
@@ -194,14 +171,6 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 			final ArgumentParser parser) throws LDAPException {
 		serverContext.debugInfo("Beginning plugin initialization");
 
-		setConfig(parser);
-
-		this.serverContext = serverContext;
-
-	}
-
-	private void setConfig(final ArgumentParser parser) {
-
 		final StringArgument arg1 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_CA_LOCATION);
 		this.keystoreRootCAFileLocation = arg1.getValue();
 
@@ -214,12 +183,8 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 		final StringArgument arg4 = (StringArgument) parser.getNamedArgument(CONFIG_IGNORE_SSL_ERRORS);
 		this.isIgnoreSSLErrors = (arg4 != null && arg4.toString().equalsIgnoreCase("true")) ? true : false;
 
-		final StringArgument arg5 = (StringArgument) parser.getNamedArgument(CONFIG_REFRESH_ADVANCE_PERIOD_SECONDS);
-		try {
-			this.refreshAdvancePeriodSeconds = Long.parseLong(arg5.getValue());
-		} catch (NumberFormatException e) {
-			this.refreshAdvancePeriodSeconds = DEFAULT_REFRESH_ADVANCE_PERIOD_SECONDS;
-		}
+		this.serverContext = serverContext;
+
 	}
 
 	/**
@@ -264,7 +229,14 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 
 		ResultCode rc = ResultCode.SUCCESS;
 
-		setConfig(parser);
+		final StringArgument arg1 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_CA_LOCATION);
+		this.keystoreRootCAFileLocation = arg1.getValue();
+
+		final StringArgument arg2 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_LOCATION);
+		this.keystoreFileLocation = arg2.getValue();
+
+		final StringArgument arg3 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_PASSWORD);
+		this.keystorePassword = arg3.getValue();
 
 		return rc;
 	}
@@ -292,49 +264,15 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 	 * @return Information about the result of the plugin processing.
 	 */
 	@Override()
-	public SearchEntryPluginResult doSearchEntry(final ActiveSearchOperationContext operationContext,
-			final SearchRequest request, final UpdatableSearchResult result, final UpdatableEntry entry,
-			final List<Control> controls) {
+	public PreParsePluginResult doPreParse(final ActiveOperationContext operationContext,
+			final UpdatableAddRequest request, final UpdatableAddResult result) {
 
-		serverContext.logMessage(LogSeverity.INFO, String.format("TokenMgt DN: %s", entry.getDN()));
+		UpdatableEntry entry = request.getEntry();
 
-		if (result.toLDAPSDKResult().getEntryCount() > 1) {
-			serverContext.logMessage(LogSeverity.INFO,
-					String.format("TokenMgt entry search count is greater than 1. Skipping."));
-			return SearchEntryPluginResult.SUCCESS;
-		}
+		String objectClass = entry.getAttribute("objectClass").get(0).getValue();
 
-		boolean hasTokenMgtClass = false;
-
-		for (Attribute objectClassObj : entry.getAttribute("objectClass")) {
-			if (objectClassObj.hasValue("tokenMgt"))
-				hasTokenMgtClass = true;
-		}
-
-		if (!hasTokenMgtClass)
-			return SearchEntryPluginResult.SUCCESS;
-
-		serverContext.logMessage(LogSeverity.INFO, "TokenMgt object, continuing...");
-
-		// omit if refresh token not available
-		if (!entry.hasAttribute("tokenMgtRefreshToken")) {
-			serverContext.logMessage(LogSeverity.INFO, "Missing refresh token. Skipping.");
-			return SearchEntryPluginResult.SUCCESS;
-		}
-
-		if (entry.hasAttribute("tokenMgtAccessTokenJWT") && entry.hasAttribute("tokenMgtAccessTokenJSON")) {
-			String tokenMgtAccessTokenJSON = entry.getAttribute("tokenMgtAccessTokenJSON").get(0).getValue();
-
-			if (!hasExpired(tokenMgtAccessTokenJSON, refreshAdvancePeriodSeconds)) {
-				serverContext.logMessage(LogSeverity.INFO, "TokenMgt object has not expired. Skipping...");
-				return SearchEntryPluginResult.SUCCESS;
-			} else
-				serverContext.logMessage(LogSeverity.INFO,
-						"TokenMgt object does not have access token with valid expiry. Treating this request as if it requires a refreshed token.");
-
-		} else
-			serverContext.logMessage(LogSeverity.INFO,
-					"TokenMgt object does not have access token. Treating this request as if it requires a refreshed token.");
+		if (!objectClass.equals("tokenMgt"))
+			return PreParsePluginResult.SUCCESS;
 
 		Entry parentEntry = null;
 
@@ -346,26 +284,35 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 				throw new Exception("Parent entry is null.");
 
 		} catch (Exception e) {
-			updateError(entry, String.format("Error loading parent: %s", e.getMessage()));
-			return SearchEntryPluginResult.SUCCESS;
+			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
+					"Error loading parent: " + e.getMessage());
+			entry.addAttribute(tokenMgtLastStatusError);
+			return PreParsePluginResult.SUCCESS;
 		}
 
 		if (!parentEntry.hasAttribute("tokenMgtConfigClientAssertionAudience")
 				|| !parentEntry.hasAttribute("tokenMgtConfigClientAssertionJWK")
 				|| !parentEntry.hasAttribute("tokenMgtConfigTokenEndpoint")) {
-			updateError(entry, "Parent missing configuration.");
-			return SearchEntryPluginResult.SUCCESS;
+			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
+					"Parent missing configuration.");
+			entry.addAttribute(tokenMgtLastStatusError);
+			return PreParsePluginResult.SUCCESS;
 		}
 
 		// if the request is missing any of these attributes,
 		// it will likely error downstream. The error is not handled here.
-		if (!entry.hasAttribute("tokenMgtRefreshToken") || !entry.hasAttribute("tokenMgtClientId")) {
-			updateError(entry, "Entry missing refresh token. Skipping.");
-			return SearchEntryPluginResult.SUCCESS;
+		if (!entry.hasAttribute("tokenMgtAuthCode") || !entry.hasAttribute("tokenMgtClientId")
+				|| !entry.hasAttribute("tokenMgtExpectedNonce") || !entry.hasAttribute("tokenMgtRedirectURI")) {
+			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
+					"Entry missing required information.");
+			entry.addAttribute(tokenMgtLastStatusError);
+			return PreParsePluginResult.SUCCESS;
 		}
 
-		String tokenMgtRefreshToken = entry.getAttribute("tokenMgtRefreshToken").get(0).getValue();
+		String tokenMgtAuthCode = entry.getAttribute("tokenMgtAuthCode").get(0).getValue();
 		String tokenMgtClientId = entry.getAttribute("tokenMgtClientId").get(0).getValue();
+		String tokenMgtExpectedNonce = entry.getAttribute("tokenMgtExpectedNonce").get(0).getValue();
+		String tokenMgtRedirectURI = entry.getAttribute("tokenMgtRedirectURI").get(0).getValue();
 
 		String tokenMgtConfigClientAssertionAudience = parentEntry.getAttribute("tokenMgtConfigClientAssertionAudience")
 				.get(0).getValue();
@@ -374,53 +321,18 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 		String tokenMgtConfigTokenEndpoint = parentEntry.getAttribute("tokenMgtConfigTokenEndpoint").get(0).getValue();
 
 		try {
-			processRefreshToken(entry, keystoreFileLocation, keystoreRootCAFileLocation, keystorePassword,
-					tokenMgtRefreshToken, tokenMgtClientId, tokenMgtConfigClientAssertionAudience,
+			processCallback(entry, keystoreFileLocation, keystoreRootCAFileLocation, keystorePassword, tokenMgtAuthCode,
+					tokenMgtClientId, tokenMgtRedirectURI, tokenMgtConfigClientAssertionAudience, tokenMgtExpectedNonce,
 					tokenMgtConfigClientAssertionJWK, tokenMgtConfigTokenEndpoint, this.isIgnoreSSLErrors);
 		} catch (Exception e) {
-			updateError(entry, String.format("Error processing callback: %s", e.getMessage()));
-			return SearchEntryPluginResult.SUCCESS;
+			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
+					"Error processing callback: " + e.getMessage());
+			entry.addAttribute(tokenMgtLastStatusError);
+			return PreParsePluginResult.SUCCESS;
 		}
 
-		return SearchEntryPluginResult.SUCCESS;
+		return PreParsePluginResult.SUCCESS;
 
-	}
-
-	private void updateError(final UpdatableEntry entry, String errorMsg) {
-		Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError", errorMsg);
-		entry.addAttribute(tokenMgtLastStatusError);
-
-		List<Modification> mods = new ArrayList<Modification>(5);
-		TokenMgtHelper.addModification(mods, "tokenMgtLastStatusError", errorMsg);
-
-		try {
-			serverContext.getClientRootConnection(true).modify(entry.getDN(), mods);
-		} catch (LDAPException e) {
-			serverContext.logMessage(LogSeverity.SEVERE_WARNING, "Unable to update tokenMgtLastStatusError.");
-		}
-	}
-
-	private boolean hasExpired(String tokenMgtAccessTokenJSON, Long refreshAdvancePeriodSeconds) {
-		JSONObject tokenMgtAccessToken = null;
-		try {
-			tokenMgtAccessToken = (JSONObject) parser.parse(tokenMgtAccessTokenJSON);
-		} catch (ParseException e) {
-			return true;
-		}
-
-		if (tokenMgtAccessToken.containsKey("exp") || tokenMgtAccessToken.get("exp") instanceof Long) {
-			Long expiryEpochSeconds = (Long) tokenMgtAccessToken.get("exp");
-
-			Long compareEpochSeconds = Instant.now().getEpochSecond() + refreshAdvancePeriodSeconds;
-
-			serverContext.logMessage(LogSeverity.INFO,
-					String.format("TokenMgt compare expiry - %s, %s.", expiryEpochSeconds, compareEpochSeconds));
-
-			if (expiryEpochSeconds > compareEpochSeconds) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 	private static String getParentDN(String dn) {
@@ -429,27 +341,39 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 		return parent;
 	}
 
-	public void processRefreshToken(UpdatableEntry entry, String keystoreFileLocation,
-			String keystoreRootCAFileLocation, String keystorePassword, String currentRefreshToken, String clientId,
-			String audience, String jwk, String tokenEndpoint, boolean isIgnoreSSLErrors) throws Exception {
+	public static void processCallback(UpdatableEntry entry, String keystoreFileLocation,
+			String keystoreRootCAFileLocation, String keystorePassword, String code, String clientId,
+			String redirectUri, String audience, String expectedNonce, String jwk, String tokenEndpoint,
+			boolean isIgnoreSSLErrors) throws Exception {
+		Map<String, String> headers = new HashMap<String, String>();
+		headers.put("Content-Type", "application/x-www-form-urlencoded");
+		headers.put("Accept", "application/json");
 
-		Map<String, String> refreshTokenResultMap = TokenMgtHelper.processRefreshToken(currentRefreshToken,
-				keystoreFileLocation, keystoreRootCAFileLocation, keystorePassword, clientId,
-				audience, jwk, tokenEndpoint, isIgnoreSSLErrors);
-		
-		List<Modification> mods = new ArrayList<Modification>(refreshTokenResultMap.size());
+		String clientAuthenticationJWT = JwtUtilities.getClientJWTAuthentication(clientId, audience, jwk);
 
-		for(String key: refreshTokenResultMap.keySet())
-		{
-			if(refreshTokenResultMap.get(key) == null)
-				continue;
-			
-			TokenMgtHelper.addModification(mods, key, refreshTokenResultMap.get(key));
-			TokenMgtHelper.addAttribute(entry, key, refreshTokenResultMap.get(key));
-		}
+		String queryString = String.format(
+				"code=%s&client_id=%s&grant_type=authorization_code&redirect_uri=%s&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer&client_assertion=%s",
+				code, clientId, redirectUri, clientAuthenticationJWT);
 
-		if(mods.size() > 0)
-			serverContext.getClientRootConnection(true).modify(entry.getDN(), mods);
+		JSONObject jsonRespObj = TokenMgtHelper.getHttpJSONResponse(tokenEndpoint, queryString, keystoreFileLocation,
+				keystoreRootCAFileLocation, keystorePassword, allowedProtocols, isIgnoreSSLErrors);
+
+		String accessToken = (jsonRespObj.containsKey("access_token")) ? jsonRespObj.get("access_token").toString()
+				: null;
+		String refreshToken = (jsonRespObj.containsKey("refresh_token")) ? jsonRespObj.get("refresh_token").toString()
+				: null;
+		String idToken = (jsonRespObj.containsKey("id_token")) ? jsonRespObj.get("id_token").toString() : null;
+
+		String accessTokenJSON = TokenMgtHelper.getJWTJSON(accessToken);
+		String idTokenJSON = TokenMgtHelper.getJWTJSON(idToken);
+
+		TokenMgtHelper.addAttribute(entry, "tokenMgtAccessTokenJWT", accessToken);
+		TokenMgtHelper.addAttribute(entry, "tokenMgtRefreshToken", refreshToken);
+		TokenMgtHelper.addAttribute(entry, "tokenMgtIDTokenJWT", idToken);
+		TokenMgtHelper.addAttribute(entry, "tokenMgtAccessTokenJSON", accessTokenJSON);
+		TokenMgtHelper.addAttribute(entry, "tokenMgtIDTokenJSON", idTokenJSON);
+
 	}
+
 
 }
