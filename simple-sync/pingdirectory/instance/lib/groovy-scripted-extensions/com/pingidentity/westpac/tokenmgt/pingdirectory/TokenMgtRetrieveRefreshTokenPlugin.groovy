@@ -41,6 +41,7 @@ import com.unboundid.directory.sdk.common.operation.SearchRequest;
 import com.unboundid.directory.sdk.common.operation.UpdatableSearchResult;
 import com.unboundid.directory.sdk.common.types.ActiveSearchOperationContext;
 import com.unboundid.directory.sdk.common.types.Entry;
+import com.unboundid.directory.sdk.common.types.LogSeverity;
 import com.unboundid.directory.sdk.common.types.UpdatableEntry;
 import com.unboundid.directory.sdk.ds.config.PluginConfig;
 import com.unboundid.directory.sdk.ds.scripting.ScriptedPlugin;
@@ -52,6 +53,7 @@ import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.LDAPInterface;
 import com.unboundid.ldap.sdk.Modification;
 import com.unboundid.ldap.sdk.ResultCode;
+import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchScope;
 import com.unboundid.util.args.ArgumentException;
 import com.unboundid.util.args.ArgumentParser;
@@ -268,21 +270,30 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 	 *
 	 * @return Information about the result of the plugin processing.
 	 */
-	  @Override()
-	  public SearchEntryPluginResult doSearchEntry(
-	              final ActiveSearchOperationContext operationContext,
-	              final SearchRequest request, final UpdatableSearchResult result,
-	              final UpdatableEntry entry, final List<Control> controls) {
+	@Override()
+	public SearchEntryPluginResult doSearchEntry(final ActiveSearchOperationContext operationContext,
+			final SearchRequest request, final UpdatableSearchResult result, final UpdatableEntry entry,
+			final List<Control> controls) {
 
-		//SearchScope scope = request.getScope();		
-		//if(scope != SearchScope.BASE)
-		//	return SearchEntryPluginResult.SUCCESS;
-		String objectClass = entry.getAttribute("objectClass").get(0).getValue();
+		// SearchScope scope = request.getScope();
+		// if(scope != SearchScope.BASE)
+		// return SearchEntryPluginResult.SUCCESS;
+		serverContext.logMessage(LogSeverity.INFO, String.format("TokenMgt DN: %s", entry.getDN()));
+		
+		boolean hasTokenMgtClass = false;
 
-		if (!objectClass.equals("tokenMgt"))
+		for(Attribute objectClassObj : entry.getAttribute("objectClass"))
+		{
+			if(objectClassObj.hasValue("tokenMgt"))
+				hasTokenMgtClass = true;
+		}
+		
+		if (!hasTokenMgtClass)
 			return SearchEntryPluginResult.SUCCESS;
+		
+		serverContext.logMessage(LogSeverity.INFO, "TokenMgt object, continuing...");
 
-		//omit if refresh token not available
+		// omit if refresh token not available
 		if (!entry.hasAttribute("tokenMgtRefreshToken")) {
 			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
 					"Entry missing refresh token.");
@@ -335,8 +346,8 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 		String tokenMgtConfigTokenEndpoint = parentEntry.getAttribute("tokenMgtConfigTokenEndpoint").get(0).getValue();
 
 		try {
-			processRefreshToken(entry, keystoreFileLocation, keystoreRootCAFileLocation, keystorePassword, tokenMgtRefreshToken,
-					tokenMgtClientId, tokenMgtConfigClientAssertionAudience, 
+			processRefreshToken(entry, keystoreFileLocation, keystoreRootCAFileLocation, keystorePassword,
+					tokenMgtRefreshToken, tokenMgtClientId, tokenMgtConfigClientAssertionAudience,
 					tokenMgtConfigClientAssertionJWK, tokenMgtConfigTokenEndpoint, this.isIgnoreSSLErrors);
 		} catch (Exception e) {
 			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
@@ -357,8 +368,7 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 
 	public void processRefreshToken(UpdatableEntry entry, String keystoreFileLocation,
 			String keystoreRootCAFileLocation, String keystorePassword, String currentRefreshToken, String clientId,
-			String audience, String jwk, String tokenEndpoint,
-			boolean isIgnoreSSLErrors) throws Exception {
+			String audience, String jwk, String tokenEndpoint, boolean isIgnoreSSLErrors) throws Exception {
 		Map<String, String> headers = new HashMap<String, String>();
 		headers.put("Content-Type", "application/x-www-form-urlencoded");
 		headers.put("Accept", "application/json");
@@ -378,22 +388,21 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 				: null;
 		String idToken = (jsonRespObj.containsKey("id_token")) ? jsonRespObj.get("id_token").toString() : null;
 
-		
 		String accessTokenJSON = TokenMgtHelper.getJWTJSON(accessToken);
 		String idTokenJSON = TokenMgtHelper.getJWTJSON(idToken);
 
 		LDAPInterface ldapInterface = serverContext.getClientRootConnection(true);
-		
+
 		List<Modification> mods = new ArrayList<Modification>(5);
-		
+
 		TokenMgtHelper.addModification(mods, "tokenMgtAccessTokenJWT", accessToken);
 		TokenMgtHelper.addModification(mods, "tokenMgtRefreshToken", refreshToken);
 		TokenMgtHelper.addModification(mods, "tokenMgtIDTokenJWT", idToken);
 		TokenMgtHelper.addModification(mods, "tokenMgtAccessTokenJSON", accessTokenJSON);
 		TokenMgtHelper.addModification(mods, "tokenMgtIDTokenJSON", idTokenJSON);
-		
+
 		ldapInterface.modify(entry.getDN(), mods);
-		
+
 		TokenMgtHelper.addAttribute(entry, "tokenMgtAccessTokenJWT", accessToken);
 		TokenMgtHelper.addAttribute(entry, "tokenMgtRefreshToken", refreshToken);
 		TokenMgtHelper.addAttribute(entry, "tokenMgtIDTokenJWT", idToken);

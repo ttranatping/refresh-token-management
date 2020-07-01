@@ -261,7 +261,7 @@ dsconfig create-plugin --plugin-name TokenManagement-Add-ExchangeCode --type gro
 
 # [30/Jun/2020:13:00:18.947 +0000] conn=11 op=154 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.32.2 to=192.168.32.3
 # Undo command: dsconfig delete-request-criteria --criteria-name TokenMgtSearchCriteria
-dsconfig create-request-criteria --criteria-name TokenMgtSearchCriteria --type simple --set operation-type:search --set "all-included-target-entry-filter:(objectClass=tokenMgt)"
+dsconfig create-request-criteria --criteria-name TokenMgtSearchCriteria --type simple --set operation-type:search --set "all-included-target-entry-filter:(|(objectClass=tokenMgt)(objectClass=organizationalUnit))"
 
 
 # [30/Jun/2020:13:50:53.882 +0000] conn=6 op=157 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.80.2 to=192.168.80.3
