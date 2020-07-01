@@ -1,4 +1,4 @@
-package com.pingidentity.westpac.tokenmgt.pingdirectory.utilities;
+package com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory.utilities;
 
 import java.io.File;
 import java.io.FileInputStream;

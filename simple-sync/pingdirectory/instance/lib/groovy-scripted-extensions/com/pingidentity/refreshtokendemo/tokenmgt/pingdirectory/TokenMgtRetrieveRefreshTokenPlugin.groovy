@@ -24,7 +24,7 @@
  *
  *      Copyright 2010-2020 Ping Identity Corporation
  */
-package com.pingidentity.westpac.tokenmgt.pingdirectory;
+package com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory;
 
 import java.security.Security;
 import java.time.Instant;
@@ -38,8 +38,8 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import com.pingidentity.westpac.tokenmgt.pingdirectory.utilities.JwtUtilities;
-import com.pingidentity.westpac.tokenmgt.pingdirectory.utilities.TokenMgtHelper;
+import com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory.utilities.JwtUtilities;
+import com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory.utilities.TokenMgtHelper;
 import com.unboundid.directory.sdk.common.operation.SearchRequest;
 import com.unboundid.directory.sdk.common.operation.UpdatableSearchResult;
 import com.unboundid.directory.sdk.common.types.ActiveSearchOperationContext;

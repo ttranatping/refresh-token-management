@@ -24,7 +24,7 @@
  *
  *      Copyright 2010-2020 Ping Identity Corporation
  */
-package com.pingidentity.westpac.tokenmgt.pingdirectory;
+package com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory;
 
 import java.security.Security;
 import java.util.HashMap;
@@ -34,8 +34,8 @@ import java.util.Map;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
 
-import com.pingidentity.westpac.tokenmgt.pingdirectory.utilities.JwtUtilities;
-import com.pingidentity.westpac.tokenmgt.pingdirectory.utilities.TokenMgtHelper;
+import com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory.utilities.JwtUtilities;
+import com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory.utilities.TokenMgtHelper;
 import com.unboundid.directory.sdk.common.operation.UpdatableAddRequest;
 import com.unboundid.directory.sdk.common.operation.UpdatableAddResult;
 import com.unboundid.directory.sdk.common.types.ActiveOperationContext;
