@@ -321,9 +321,7 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 
 		// omit if refresh token not available
 		if (!entry.hasAttribute("tokenMgtRefreshToken")) {
-			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
-					"Entry missing refresh token.");
-			entry.addAttribute(tokenMgtLastStatusError);
+			updateError(entry, "Entry missing refresh token.");
 			return SearchEntryPluginResult.SUCCESS;
 		}
 
@@ -354,27 +352,21 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 				throw new Exception("Parent entry is null.");
 
 		} catch (Exception e) {
-			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
-					"Error loading parent: " + e.getMessage());
-			entry.addAttribute(tokenMgtLastStatusError);
+			updateError(entry, String.format("Error loading parent: %s", e.getMessage()));
 			return SearchEntryPluginResult.SUCCESS;
 		}
 
 		if (!parentEntry.hasAttribute("tokenMgtConfigClientAssertionAudience")
 				|| !parentEntry.hasAttribute("tokenMgtConfigClientAssertionJWK")
 				|| !parentEntry.hasAttribute("tokenMgtConfigTokenEndpoint")) {
-			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
-					"Parent missing configuration.");
-			entry.addAttribute(tokenMgtLastStatusError);
+			updateError(entry, "Parent missing configuration.");
 			return SearchEntryPluginResult.SUCCESS;
 		}
 
 		// if the request is missing any of these attributes,
 		// it will likely error downstream. The error is not handled here.
 		if (!entry.hasAttribute("tokenMgtRefreshToken") || !entry.hasAttribute("tokenMgtClientId")) {
-			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
-					"Entry missing refresh token. Skipping.");
-			entry.addAttribute(tokenMgtLastStatusError);
+			updateError(entry, "Entry missing refresh token. Skipping.");
 			return SearchEntryPluginResult.SUCCESS;
 		}
 
@@ -392,14 +384,29 @@ public final class TokenMgtRetrieveRefreshTokenPlugin extends ScriptedPlugin {
 					tokenMgtRefreshToken, tokenMgtClientId, tokenMgtConfigClientAssertionAudience,
 					tokenMgtConfigClientAssertionJWK, tokenMgtConfigTokenEndpoint, this.isIgnoreSSLErrors);
 		} catch (Exception e) {
-			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
-					"Error processing callback: " + e.getMessage());
-			entry.addAttribute(tokenMgtLastStatusError);
+			updateError(entry, String.format("Error processing callback: ", e.getMessage()));
 			return SearchEntryPluginResult.SUCCESS;
 		}
 
 		return SearchEntryPluginResult.SUCCESS;
 
+	}
+	
+	private void updateError(final UpdatableEntry entry, String errorMsg)
+	{
+		Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
+				errorMsg);
+		entry.addAttribute(tokenMgtLastStatusError);
+		
+		List<Modification> mods = new ArrayList<Modification>(5);
+		TokenMgtHelper.addModification(mods, "tokenMgtLastStatusError", errorMsg);
+		
+		try {
+			serverContext.getClientRootConnection(true).modify(entry.getDN(), mods);
+		} catch (LDAPException e) {
+			serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+					"Unable to update tokenMgtLastStatusError.");
+		}
 	}
 
 	private boolean hasExpired(String tokenMgtAccessTokenJSON, Long refreshAdvancePeriodSeconds) {
