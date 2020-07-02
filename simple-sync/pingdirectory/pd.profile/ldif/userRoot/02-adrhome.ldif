@@ -4,7 +4,19 @@ dn: ou=adr-clients,o=sync
 objectClass: organizationalUnit
 objectClass: top
 ou: adr-clients
-aci: (targetattr="*")(version 3.0; acl "Administrators can add, modify and delete entries";allow (all) userdn="ldap:///cn=admin,${USER_BASE_DN}";)
-aci: (targetattr="*")(version 3.0; acl "Administrators can add, modify and delete entries";allow (all) userdn="ldap:///cn=SCIM2 Servlet,cn=Root DNs,cn=config";)
-aci: (targetattr="+")(version 3.0; acl "Administrators can read, search or compare operational attributes";allow (read,search,compare) userdn="ldap:///cn=admin,${USER_BASE_DN}";)
-aci: (targetattr="+")(version 3.0; acl "Administrators can read, search or compare operational attributes";allow (read,search,compare) userdn="ldap:///cn=SCIM2 Servlet,cn=Root DNs,cn=config";)
+aci: (targetattr="*")(version 3.0; acl "ACI for adr-clients-read scope"; allow (read,search,compare) oauthscope="adr-clients-read";)
+aci: (targetattr="*")(version 3.0; acl "ACI for adr-clients-write scope"; allow (add,read,search,compare) oauthscope="adr-clients-write";)
+
+dn: ou=tenant1,ou=adr-clients,o=sync
+objectClass: organizationalUnit
+objectClass: top
+ou: tenant1
+aci: (targetattr="*")(version 3.0; acl "ACI for adr-clients-read scope"; allow (read,search,compare) oauthscope="adr-tenant1-read";)
+aci: (targetattr="*")(version 3.0; acl "ACI for adr-clients-write scope"; allow (add,read,search,compare) oauthscope="adr-tenant1-write";)
+
+dn: ou=tenant2,ou=adr-clients,o=sync
+objectClass: organizationalUnit
+objectClass: top
+ou: tenant2
+aci: (targetattr="*")(version 3.0; acl "ACI for adr-clients-read scope"; allow (read,search,compare) oauthscope="adr-tenant2-read";)
+aci: (targetattr="*")(version 3.0; acl "ACI for adr-clients-write scope"; allow (add,read,search,compare) oauthscope="adr-tenant2-write";)

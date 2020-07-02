@@ -3,5 +3,4 @@ objectClass: top
 objectClass: ldapSubentry
 objectClass: subschema
 cn: schema
-objectClasses: ( tokenMgt-OID NAME 'tokenMgt' STRUCTURAL MUST ( tokenMgtAuthCode $ tokenMgtExpectedNonce $ tokenMgtClientId $ tokenMgtRedirectURI ) MAY ( tokenMgtAccessTokenJSON $ tokenMgtAccessTokenJWT $ tokenMgtIDTokenJSON $ tokenMgtIDTokenJWT $ tokenMgtRefreshToken $ tokenMgtLastStatusError $ tokenMgtLastStatusCode) )
-
+objectClasses: ( tokenMgt-OID NAME 'tokenMgt' STRUCTURAL MUST ( tokenMgtTenant $ tokenMgtAuthCode $ tokenMgtExpectedNonce $ tokenMgtClientId $ tokenMgtRedirectURI ) MAY ( tokenMgtAccessTokenJSON $ tokenMgtAccessTokenJWT $ tokenMgtIDTokenJSON $ tokenMgtIDTokenJWT $ tokenMgtRefreshToken $ tokenMgtLastStatusError $ tokenMgtLastStatusCode) )
