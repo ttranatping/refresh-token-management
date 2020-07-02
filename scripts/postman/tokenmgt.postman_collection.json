@@ -344,7 +344,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{admin-user-token}}",
+									"value": "{\"active\":true, \"sub\":\"xxx\", \"client_id\":\"xxx\", \"scope\":\"adr-{{tenant}}-write\"}",
 									"type": "string"
 								}
 							]
@@ -359,7 +359,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"client_assertion_aud\": \"{{dh-idp-host}}\",\n    \"client_assertion_jwk\": {{software-jwks-private-raw}},\n    \"client_id\": \"{{dcrClientId}}\",\n    \"token_endpoint\": \"{{dh-idp-host}}{{dh-idp-token-endpoint}}\",\n    \"schemas\": [\n        \"urn:pingidentity:adr:config\"\n    ]\n}"
+							"raw": "{\n    \"client_assertion_aud\": \"{{dh-idp-host}}\",\n    \"client_assertion_jwk\": {{software-jwks-private-raw}},\n    \"client_id\": \"{{dcrClientId}}\",\n    \"token_endpoint\": \"{{dh-idp-host}}{{dh-idp-token-endpoint}}\",\n    \"tenant\": \"{{tenant}}\",\n    \"schemas\": [\n        \"urn:pingidentity:adr:config\"\n    ]\n}"
 						},
 						"url": {
 							"raw": "https://localhost:1443/scim/v2/adr-config",
@@ -811,7 +811,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{admin-user-token}}",
+									"value": "{\"active\":true, \"sub\":\"xxx\", \"client_id\":\"xxx\", \"scope\":\"adr-{{tenant}}-write\"}",
 									"type": "string"
 								}
 							]
@@ -826,7 +826,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"auth_code\":\"{{consent-request-authcode-callback-code}}\",\n    \"redirect_uri\":\"{{default-redirecturi}}\",\n    \"client_id\":\"{{dcrClientId}}\",\n    \"expected_nonce\":\"{{default-nonce}}\",\n    \"schemas\": [\n        \"urn:pingidentity:adr:token:instance\"\n    ]\n}",
+							"raw": "{\n    \"auth_code\":\"{{consent-request-authcode-callback-code}}\",\n    \"redirect_uri\":\"{{default-redirecturi}}\",\n    \"client_id\":\"{{dcrClientId}}\",\n    \"expected_nonce\":\"{{default-nonce}}\",\n    \"tenant\": \"{{tenant}}\",\n    \"schemas\": [\n        \"urn:pingidentity:adr:token:instance\"\n    ]\n}",
 							"options": {
 								"urlencoded": {}
 							}
@@ -910,7 +910,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{{admin-user-token}}",
+									"value": "{\"active\":true, \"sub\":\"xxx\", \"client_id\":\"xxx\", \"scope\":\"adr-{{tenant}}-read\"}",
 									"type": "string"
 								}
 							]
@@ -1048,99 +1048,111 @@
 	],
 	"variable": [
 		{
-			"id": "8a2916b5-a37e-4a62-a818-064ee6bf9093",
+			"id": "c3f42506-117b-4e3c-8841-1bd1c8ef3f31",
 			"key": "cdr-register-testharness-host",
 			"value": "https://mockregister.pingapac.com",
 			"type": "string"
 		},
 		{
-			"id": "a86f6a74-8e84-48ab-a41e-32ec4bb4eccc",
+			"id": "df6693e9-a363-45c6-8fe8-1a7de4683b2a",
 			"key": "dh-idp-host",
 			"value": "https://sso.pingapac.com",
 			"type": "string"
 		},
 		{
-			"id": "0f267c07-a2dc-4b95-afb1-3e21508df7b2",
+			"id": "d605e433-2240-44d5-b292-47a6fc0da03b",
 			"key": "dh-idp-register-endpoint",
 			"value": "/as/register",
 			"type": "string"
 		},
 		{
-			"id": "8a20ed0c-962c-46a3-adfe-8f2cd2633ec7",
+			"id": "f0dc4010-31cf-4b55-8963-7d16c0cdef2b",
 			"key": "dh-idp-token-endpoint",
 			"value": "/as/token.oauth2",
 			"type": "string"
 		},
 		{
-			"id": "bc018c07-d47b-47e3-958d-6f6a89a49fbf",
+			"id": "b9d33710-2ff2-486b-a1df-3b9fe13a1014",
 			"key": "dh-audience",
 			"value": "https://data-holder",
 			"type": "string"
 		},
 		{
-			"id": "a7d55935-d883-4a4b-92ae-8b9430da7c3a",
+			"id": "8aadc12f-c45b-48e3-8dd7-6e9ebb0e7856",
 			"key": "pki-basicheader",
 			"value": "Basic cGtpdXNlcjphYmNEMzBmZw==",
 			"type": "string"
 		},
 		{
-			"id": "1fe4ff9d-e1ad-4323-94f9-9af4ce917457",
+			"id": "0f6d8568-6aed-411d-8b07-44802793459d",
 			"key": "default-nonce",
 			"value": "ea18887b-8629-43f2-93e1-4346959fb2ec",
 			"type": "string"
 		},
 		{
-			"id": "58b1ce7c-f79f-4ab9-8a9c-792542c7ba65",
+			"id": "f13174b0-8315-44a9-abcb-77eedede6a85",
 			"key": "default-state",
 			"value": "887bea18-93e1-8629-43f2-59fb2ec43469",
 			"type": "string"
 		},
 		{
-			"id": "83685074-9a42-4105-a5a4-7fd339321621",
+			"id": "5779803e-7127-433d-b5bc-35adcd4166cf",
 			"key": "dh-idp-authorization-endpoint",
 			"value": "/as/authorization.oauth2",
 			"type": "string"
 		},
 		{
-			"id": "9970a712-6389-4663-9986-0b9b5d8003e0",
+			"id": "69f193e6-ea64-4f8d-9f16-8219473fae8c",
 			"key": "default-redirecturi",
 			"value": "https://httpbin.org/get",
 			"type": "string"
 		},
 		{
-			"id": "8986ed43-745b-4ccf-95a6-050a301d13d1",
+			"id": "89e6eff9-2b06-4eae-a48a-82004469f4a8",
 			"key": "dh-idp-introspect-endpoint",
 			"value": "/as/introspect.oauth2",
 			"type": "string"
 		},
 		{
-			"id": "8e5b1bfe-687c-447b-ba96-f45cc02ffb89",
+			"id": "061851d5-ff9d-456c-8446-b14f80b3754e",
 			"key": "dh-api-host",
 			"value": "https://api.pingapac.com/cds-au",
 			"type": "string"
 		},
 		{
-			"id": "85e4880e-75af-42aa-b4ab-4a27fdd98d19",
+			"id": "4296929c-2258-4bc5-910e-0da567fed9e3",
 			"key": "dh-idp-revocation-endpoint",
 			"value": "/as/revoke_token.oauth2",
 			"type": "string"
 		},
 		{
-			"id": "9cbe6968-d332-495d-8c9c-5416520a8931",
+			"id": "da138c4f-10bd-45df-8dee-94890ae75c82",
 			"key": "dh-idp-userinfo-endpoint",
 			"value": "/idp/userinfo.openid",
 			"type": "string"
 		},
 		{
-			"id": "b6732bea-c8c7-4e9c-baf4-b4291eb184c1",
-			"key": "admin-user-token",
-			"value": "{\"active\":true, \"sub\":\"admin\", \"client_id\":\"xxx\", \"scope\":\"xxx\"}",
+			"id": "dc1f6e99-d68f-4480-ae0c-60a85de3abb2",
+			"key": "admin-user-token-read",
+			"value": "{\"active\":true, \"sub\":\"user.0\", \"client_id\":\"xxx\", \"scope\":\"adr-tenant1-read\"}",
 			"type": "string"
 		},
 		{
-			"id": "4c08096a-2230-4338-a41a-4e80b87d8925",
+			"id": "4bdaa3a2-e079-4871-b02a-7458282d63bf",
 			"key": "username",
 			"value": "crn0",
+			"type": "string"
+		},
+		{
+			"id": "b7602d55-8efd-46ec-8ea6-1c4e8ff4cfc2",
+			"key": "admin-user-token-write",
+			"value": "{\"active\":true, \"sub\":\"user.0\", \"client_id\":\"xxx\", \"scope\":\"adr-tenant1-write\"}",
+			"type": "string"
+		},
+		{
+			"id": "658871aa-ba74-490d-a8b7-20f032ff60dc",
+			"key": "tenant",
+			"value": "tenant1",
 			"type": "string"
 		}
 	],
