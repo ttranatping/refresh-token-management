@@ -1,0 +1,9 @@
+[
+    {
+        "name": "https://sso.pingapac.com",
+        "matches": ["https://sso.pingapac.com/*", "https://api.pingapac.com/*"],
+        "key": {"src": "cert/client.key"},
+        "cert": {"src": "cert/csrresponse.pem"},
+        "passphrase": "P@ssword1"
+    }
+]

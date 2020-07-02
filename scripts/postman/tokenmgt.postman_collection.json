@@ -1,0 +1,1148 @@
+{
+	"info": {
+		"_postman_id": "2dc63f87-4f14-4829-9ffa-2a90d023b2e3",
+		"name": "Token management demonstration",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1 - Register client",
+			"item": [
+				{
+					"name": "S001.T001.001 - DH downloads Software Statement from CDR Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "2716ff62-c60f-44f9-8ece-3719920c508e",
+								"exec": [
+									"pm.test(\"Validate response status=200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Validate software_statement property exists\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('software_statement');",
+									"});",
+									"pm.test(\"Validate software_id property exists\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('software_id');",
+									"});",
+									"pm.test(\"Set environment variables for next test\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.environment.set(\"softwareStatement\", response.software_statement);",
+									"    pm.environment.set(\"softwareId\", response.software_id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							},
+							{
+								"key": "Authorization",
+								"type": "text",
+								"value": "{{pki-basicheader}}"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "client_name",
+									"value": "Application abc",
+									"type": "text"
+								},
+								{
+									"key": "client_desc",
+									"value": "This is my application",
+									"type": "text"
+								},
+								{
+									"key": "version",
+									"value": "1.0",
+									"type": "text"
+								},
+								{
+									"key": "policy_uri",
+									"value": "https://idpv2.pingapac.com/pf/heartbeat.ping",
+									"type": "text"
+								},
+								{
+									"key": "terms_uri",
+									"value": "https://idpv2.pingapac.com/pf/heartbeat.ping",
+									"type": "text"
+								},
+								{
+									"key": "organisation_id",
+									"value": "BudgetGuide",
+									"type": "text"
+								},
+								{
+									"key": "redirect_uri",
+									"value": "https://www.google.com.au,{{default-redirecturi}}",
+									"type": "text"
+								},
+								{
+									"key": "software_id",
+									"value": "",
+									"type": "text"
+								},
+								{
+									"key": "issuer",
+									"value": "cdr-register",
+									"type": "text"
+								},
+								{
+									"key": "scope",
+									"value": "bank:accounts.basic:read bank:accounts.detail:read bank:transactions:read bank:payees:read bank:regular_payments:read common:customer.basic:read common:customer.detail:read cdr:registration",
+									"type": "text"
+								}
+							],
+							"options": {
+								"urlencoded": {}
+							}
+						},
+						"url": {
+							"raw": "{{cdr-register-testharness-host}}/softwarestatement",
+							"host": [
+								"{{cdr-register-testharness-host}}"
+							],
+							"path": [
+								"softwarestatement"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "S001.T001.002 - DR downloads Private Key from CDR Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "6379f16b-519a-4b20-bb72-50f83d09aaec",
+								"exec": [
+									"pm.test(\"Validate response status=200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Validate kty is RSA\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response.kty).to.equal('RSA');",
+									"});",
+									"pm.test(\"Validate algorithm is PS256\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response.alg).to.equal('PS256');",
+									"});",
+									"pm.test(\"Set environment variables for next test\", function () {",
+									"    var responseBlob = btoa(pm.response.text());",
+									"    pm.environment.set(\"software-jwks-private\", responseBlob);",
+									"    pm.environment.set(\"software-jwks-private-raw\", pm.response.text());",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{cdr-register-testharness-host}}/softwarestatement/JWKS/{{softwareId}}/private",
+							"host": [
+								"{{cdr-register-testharness-host}}"
+							],
+							"path": [
+								"softwarestatement",
+								"JWKS",
+								"{{softwareId}}",
+								"private"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "S001.T001.003 - DR creates Request JWT",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "0aa73e51-40c1-4b03-8908-d7c28dfa709a",
+								"exec": [
+									"pm.test(\"Validate response status=200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Validate request-jwt property exists\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('request-jwt');",
+									"});",
+									"pm.test(\"Set environment variables for next test\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.environment.set(\"request-jwt-createclient\", response[\"request-jwt\"]);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "softwareStatement",
+									"value": "{{softwareStatement}}",
+									"type": "text"
+								},
+								{
+									"key": "private-jwk",
+									"value": "{{software-jwks-private}}",
+									"type": "text"
+								},
+								{
+									"key": "audience",
+									"value": "{{dh-audience}}",
+									"type": "text"
+								},
+								{
+									"key": "token-endpoint-auth-method",
+									"value": "private_key_jwt",
+									"type": "text"
+								},
+								{
+									"key": "grant-types",
+									"value": "authorization_code,client_credentials,refresh_token",
+									"type": "text"
+								},
+								{
+									"key": "response-types",
+									"value": "code id_token",
+									"type": "text"
+								},
+								{
+									"key": "application-type",
+									"value": "web",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "id-token-signed-response-alg",
+									"value": "PS256",
+									"type": "text"
+								},
+								{
+									"key": "request_object_signing_alg",
+									"value": "PS256",
+									"type": "text"
+								},
+								{
+									"key": "token-endpoint-auth-signing-alg",
+									"value": "PS256",
+									"type": "text"
+								},
+								{
+									"key": "redirect-uris",
+									"value": "{{default-redirecturi}}",
+									"type": "text"
+								}
+							],
+							"options": {
+								"urlencoded": {}
+							}
+						},
+						"url": {
+							"raw": "{{cdr-register-testharness-host}}/testtool/tpp/requestCreate",
+							"host": [
+								"{{cdr-register-testharness-host}}"
+							],
+							"path": [
+								"testtool",
+								"tpp",
+								"requestCreate"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "S001.T001.004 - DR run DCR POST request to create a client against DH",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "3ef8fe5c-7ad3-40eb-a9d0-a7c1d747e8d7",
+								"exec": [
+									"pm.test(\"Validate response status=201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"Validate client_id property exists\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('client_id');",
+									"});",
+									"pm.test(\"Validate redirect_uris property exists\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('redirect_uris');",
+									"});",
+									"pm.test(\"Validate redirect_uris contains 'https://httpbin.org/get'\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response.redirect_uris).to.include('https://httpbin.org/get');",
+									"    ",
+									"});",
+									"pm.test(\"Set environment variables for next test\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.environment.set(\"dcrClientId\", response.client_id);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/jwt"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{request-jwt-createclient}}",
+							"options": {
+								"raw": {}
+							}
+						},
+						"url": {
+							"raw": "{{dh-idp-host}}{{dh-idp-register-endpoint}}",
+							"host": [
+								"{{dh-idp-host}}{{dh-idp-register-endpoint}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "S001.T001.005 - Store client configuration in PingDirectory",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin-user-token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"client_assertion_aud\": \"{{dh-idp-host}}\",\n    \"client_assertion_jwk\": {{software-jwks-private-raw}},\n    \"client_id\": \"{{dcrClientId}}\",\n    \"token_endpoint\": \"{{dh-idp-host}}{{dh-idp-token-endpoint}}\",\n    \"schemas\": [\n        \"urn:pingidentity:adr:config\"\n    ]\n}"
+						},
+						"url": {
+							"raw": "https://localhost:1443/scim/v2/adr-config",
+							"protocol": "https",
+							"host": [
+								"localhost"
+							],
+							"port": "1443",
+							"path": [
+								"scim",
+								"v2",
+								"adr-config"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "8bbe402a-d8f0-4071-b4aa-0c18330dbf93",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "b9701f32-a94e-4076-801a-e55665467df6",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "2 - Authenticate and get first access_token",
+			"item": [
+				{
+					"name": "S002.T001.001 - Download Private Key",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "e03f80b0-551b-4f59-a7c3-7e7760838d8b",
+								"exec": [
+									"pm.test(\"Validate response status=200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Validate kty is RSA\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response.kty).to.equal('RSA');",
+									"});",
+									"pm.test(\"Validate algorithm is PS256\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response.alg).to.equal('PS256');",
+									"});",
+									"pm.test(\"Set environment variables for next test\", function () {",
+									"    var responseBlob = btoa(pm.response.text());",
+									"    pm.environment.set(\"software-jwks-private\", responseBlob);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{cdr-register-testharness-host}}/softwarestatement/JWKS/{{softwareId}}/private",
+							"host": [
+								"{{cdr-register-testharness-host}}"
+							],
+							"path": [
+								"softwarestatement",
+								"JWKS",
+								"{{softwareId}}",
+								"private"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "S002.T001.002 - Creates Request Object JWT",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "5292521a-7f2e-40f4-ba6c-8b8bba6abfe6",
+								"exec": [
+									"pm.test(\"Validate response status=200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Validate request-jwt property exists\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('request-jwt');",
+									"});",
+									"pm.test(\"Validate request-url property exists\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('request-url');",
+									"});",
+									"pm.test(\"Set environment variables for next test\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.environment.set(\"consent-request-url\", response[\"request-url\"]);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "x-private-jwk",
+								"type": "text",
+								"value": "{{software-jwks-private}}"
+							},
+							{
+								"key": "x-nonce",
+								"value": "{{default-nonce}}",
+								"type": "text"
+							},
+							{
+								"key": "x-state",
+								"value": "{{default-state}}",
+								"type": "text"
+							},
+							{
+								"key": "x-issuer",
+								"value": "{{dcrClientId}}",
+								"type": "text"
+							},
+							{
+								"key": "x-duration-seconds",
+								"value": "60",
+								"type": "text"
+							},
+							{
+								"key": "x-dataholder-authorization-endpoint",
+								"value": "{{dh-idp-host}}{{dh-idp-authorization-endpoint}}",
+								"type": "text"
+							},
+							{
+								"key": "x-response-type",
+								"value": "code id_token",
+								"type": "text"
+							},
+							{
+								"key": "x-scope",
+								"value": "openid profile bank:accounts.basic:read bank:transactions:read",
+								"type": "text"
+							},
+							{
+								"key": "x-redirecturi",
+								"value": "{{default-redirecturi}}",
+								"type": "text"
+							},
+							{
+								"key": "x-maxage",
+								"value": "-1",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"scope\": \"openid bank:accounts.basic:read bank:transactions:read\",\n  \"iss\": \"{{dcrClientId}}\",\n  \"claims\": {\n    \"sharing_duration\": 5184000,\n    \"id_token\": {\n      \"acr\": {\n        \"values\": [\n          \"urn:cds.au:cdr:2\"\n        ],\n        \"essential\": true\n      },\n      \"auth_time\": {\n        \"essential\": true\n      }\n    },\n    \"userinfo\": {\n      \"family_name\": {\n        \"essential\": true\n      },\n      \"given_name\": {\n        \"essential\": true\n      }\n    }\n  },\n  \"response_type\": \"code id_token\",\n  \"redirect_uri\": \"{{default-redirecturi}}\"\n}",
+							"options": {
+								"raw": {}
+							}
+						},
+						"url": {
+							"raw": "{{cdr-register-testharness-host}}/testtool/tpp/requestGenericJWT",
+							"host": [
+								"{{cdr-register-testharness-host}}"
+							],
+							"path": [
+								"testtool",
+								"tpp",
+								"requestGenericJWT"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "S002.T001.003 - Initiate Consent Request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "53395812-1538-4f43-bb60-6f3fba32e7d2",
+								"exec": [
+									"",
+									"",
+									"pm.test(\"Set environment variables for next test\", function () {",
+									"    const $ = cheerio.load(responseBody);",
+									"    pm.environment.set(\"consent-request-nonceurl\", $( \"form\" ).attr(\"action\"));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{consent-request-url}}",
+							"host": [
+								"{{consent-request-url}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "S002.T001.004 - Provide username",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "bdd03cf3-2e9b-4fe4-90be-3ae644d62544",
+								"exec": [
+									"pm.test(\"Set environment variables for next test\", function () {",
+									"    const $ = cheerio.load(responseBody);",
+									"    pm.environment.set(\"consent-request-otp-csrf\", $( \"input[name='CSRF_TOKEN']\" ).val());",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "$ok",
+									"value": "clicked",
+									"type": "text"
+								},
+								{
+									"key": "subject",
+									"value": "{{username}}",
+									"type": "text"
+								}
+							],
+							"options": {
+								"urlencoded": {}
+							}
+						},
+						"url": {
+							"raw": "{{dh-idp-host}}{{consent-request-nonceurl}}",
+							"host": [
+								"{{dh-idp-host}}{{consent-request-nonceurl}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "S002.T001.005 - Verify OTP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "d4afaae5-6d97-4aa4-aecf-4f3aefcc19e2",
+								"exec": [
+									"pm.test(\"Set environment variables for next test\", function () {",
+									"    const $ = cheerio.load(responseBody);",
+									"    pm.environment.set(\"consent-request-consent-csrf\", $( \"input[name='cSRFToken']\" ).val());",
+									"    pm.environment.set(\"consent-request-consent-account\", $( \"input[name='accounts']\" ).val());",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "$ok",
+									"value": "clicked",
+									"type": "text"
+								},
+								{
+									"key": "CODE_VERIFICATION_VALUE",
+									"value": "123456",
+									"type": "text"
+								},
+								{
+									"key": "CODE_VERIFICATION_STATE",
+									"value": "true",
+									"type": "text"
+								},
+								{
+									"key": "CSRF_TOKEN",
+									"value": "{{consent-request-otp-csrf}}",
+									"type": "text"
+								},
+								{
+									"key": "submitform",
+									"value": "true",
+									"type": "text"
+								}
+							],
+							"options": {
+								"urlencoded": {}
+							}
+						},
+						"url": {
+							"raw": "{{dh-idp-host}}{{consent-request-nonceurl}}",
+							"host": [
+								"{{dh-idp-host}}{{consent-request-nonceurl}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "S002.T001.005 - Perform consent",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "399d4971-adf7-49d1-91bd-e4f817b58caf",
+								"exec": [
+									"pm.test(\"Set environment variables for next test\", function () {",
+									"    var locationHeader = pm.response.headers.get(\"Location\");",
+									"    if(!locationHeader)",
+									"        locationHeader = pm.response.headers.get(\"Referer\");",
+									"",
+									"    var locationParams = locationHeader.split(\"#\")[1];",
+									"    const eachParamArray = locationParams.split('&');",
+									"    let params = {};",
+									"    eachParamArray.forEach((param) => {",
+									"        const key = param.split('=')[0];",
+									"        const value = param.split('=')[1];",
+									"        Object.assign(params, {[key]: value});",
+									"    });",
+									"    pm.environment.set(\"consent-request-authcode-callback\", locationHeader);",
+									"    pm.environment.set(\"consent-request-authcode-callback-params\", locationParams);",
+									"    pm.environment.set(\"consent-request-authcode-callback-code\", params[\"code\"]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "accounts",
+									"value": "{{consent-request-consent-account}}",
+									"type": "text"
+								},
+								{
+									"key": "cSRFToken",
+									"value": "{{consent-request-consent-csrf}}",
+									"type": "text"
+								},
+								{
+									"key": "approved",
+									"value": "allow",
+									"type": "text"
+								},
+								{
+									"key": "scopes",
+									"value": "bank:accounts.basic:read",
+									"type": "text"
+								},
+								{
+									"key": "scopes",
+									"value": "bank:transactions:read",
+									"type": "text"
+								}
+							],
+							"options": {
+								"urlencoded": {}
+							}
+						},
+						"url": {
+							"raw": "{{dh-idp-host}}{{consent-request-nonceurl}}",
+							"host": [
+								"{{dh-idp-host}}{{consent-request-nonceurl}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "S002.T001.007 - Perform code exchange",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "ce7741ea-e4c2-4051-a0c0-4f7fab49384b",
+								"exec": [
+									"pm.test(\"Validate response status=201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"Validate access_token is available\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('access_token');",
+									"});",
+									"pm.test(\"Validate id_token is available\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('id_token');",
+									"});",
+									"pm.test(\"Set environment variables for next test\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.environment.set(\"consent-request-access-token\", response.access_token);",
+									"    pm.environment.set(\"consent-request-id-token\", response.id_token);",
+									"    pm.environment.set(\"consent-request-reference\", response.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin-user-token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"auth_code\":\"{{consent-request-authcode-callback-code}}\",\n    \"redirect_uri\":\"{{default-redirecturi}}\",\n    \"client_id\":\"{{dcrClientId}}\",\n    \"expected_nonce\":\"{{default-nonce}}\",\n    \"schemas\": [\n        \"urn:pingidentity:adr:token:instance\"\n    ]\n}",
+							"options": {
+								"urlencoded": {}
+							}
+						},
+						"url": {
+							"raw": "https://localhost:1443/scim/v2/adr-token",
+							"protocol": "https",
+							"host": [
+								"localhost"
+							],
+							"port": "1443",
+							"path": [
+								"scim",
+								"v2",
+								"adr-token"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "203e4449-d90b-4a14-8522-217ea5212870",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "ea777586-0b2e-4be0-9d6f-fed97bf65357",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "3 - Retrieve latest access_token then call API",
+			"item": [
+				{
+					"name": "Get latest Access Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "bc41ae9f-e8d9-4d77-b561-d28b82daab0e",
+								"exec": [
+									"pm.test(\"Validate response status=200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Validate access_token is available\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('access_token');",
+									"});",
+									"pm.test(\"Validate id_token is available\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('id_token');",
+									"});",
+									"pm.test(\"Set environment variables for next test\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.environment.set(\"consent-request-access-token\", response.access_token);",
+									"    pm.environment.set(\"consent-request-id-token\", response.id_token);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin-user-token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://localhost:1443/scim/v2/adr-token/{{consent-request-reference}}",
+							"protocol": "https",
+							"host": [
+								"localhost"
+							],
+							"port": "1443",
+							"path": [
+								"scim",
+								"v2",
+								"adr-token",
+								"{{consent-request-reference}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Call bank API",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "cfcc8805-448d-4ccb-aba6-e7f20af3ecc8",
+								"exec": [
+									"pm.test(\"Validate response status=200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Validate data is available\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('data');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{consent-request-access-token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "x-v",
+								"value": "1",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{dh-api-host}}/v1/banking/accounts",
+							"host": [
+								"{{dh-api-host}}"
+							],
+							"path": [
+								"v1",
+								"banking",
+								"accounts"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "77191d82-8696-4e82-a6ff-30a10616fd2e",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "be5ad64c-925d-4620-a9c1-e447321e2a5f",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"protocolProfileBehavior": {}
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "4f8a84c0-11b2-475a-b0bb-ee6c2781b971",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "908b80dd-3cc1-46df-9493-3bbaa737df07",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"id": "8a2916b5-a37e-4a62-a818-064ee6bf9093",
+			"key": "cdr-register-testharness-host",
+			"value": "https://mockregister.pingapac.com",
+			"type": "string"
+		},
+		{
+			"id": "a86f6a74-8e84-48ab-a41e-32ec4bb4eccc",
+			"key": "dh-idp-host",
+			"value": "https://sso.pingapac.com",
+			"type": "string"
+		},
+		{
+			"id": "0f267c07-a2dc-4b95-afb1-3e21508df7b2",
+			"key": "dh-idp-register-endpoint",
+			"value": "/as/register",
+			"type": "string"
+		},
+		{
+			"id": "8a20ed0c-962c-46a3-adfe-8f2cd2633ec7",
+			"key": "dh-idp-token-endpoint",
+			"value": "/as/token.oauth2",
+			"type": "string"
+		},
+		{
+			"id": "bc018c07-d47b-47e3-958d-6f6a89a49fbf",
+			"key": "dh-audience",
+			"value": "https://data-holder",
+			"type": "string"
+		},
+		{
+			"id": "a7d55935-d883-4a4b-92ae-8b9430da7c3a",
+			"key": "pki-basicheader",
+			"value": "Basic cGtpdXNlcjphYmNEMzBmZw==",
+			"type": "string"
+		},
+		{
+			"id": "1fe4ff9d-e1ad-4323-94f9-9af4ce917457",
+			"key": "default-nonce",
+			"value": "ea18887b-8629-43f2-93e1-4346959fb2ec",
+			"type": "string"
+		},
+		{
+			"id": "58b1ce7c-f79f-4ab9-8a9c-792542c7ba65",
+			"key": "default-state",
+			"value": "887bea18-93e1-8629-43f2-59fb2ec43469",
+			"type": "string"
+		},
+		{
+			"id": "83685074-9a42-4105-a5a4-7fd339321621",
+			"key": "dh-idp-authorization-endpoint",
+			"value": "/as/authorization.oauth2",
+			"type": "string"
+		},
+		{
+			"id": "9970a712-6389-4663-9986-0b9b5d8003e0",
+			"key": "default-redirecturi",
+			"value": "https://httpbin.org/get",
+			"type": "string"
+		},
+		{
+			"id": "8986ed43-745b-4ccf-95a6-050a301d13d1",
+			"key": "dh-idp-introspect-endpoint",
+			"value": "/as/introspect.oauth2",
+			"type": "string"
+		},
+		{
+			"id": "8e5b1bfe-687c-447b-ba96-f45cc02ffb89",
+			"key": "dh-api-host",
+			"value": "https://api.pingapac.com/cds-au",
+			"type": "string"
+		},
+		{
+			"id": "85e4880e-75af-42aa-b4ab-4a27fdd98d19",
+			"key": "dh-idp-revocation-endpoint",
+			"value": "/as/revoke_token.oauth2",
+			"type": "string"
+		},
+		{
+			"id": "9cbe6968-d332-495d-8c9c-5416520a8931",
+			"key": "dh-idp-userinfo-endpoint",
+			"value": "/idp/userinfo.openid",
+			"type": "string"
+		},
+		{
+			"id": "b6732bea-c8c7-4e9c-baf4-b4291eb184c1",
+			"key": "admin-user-token",
+			"value": "{\"active\":true, \"sub\":\"admin\", \"client_id\":\"xxx\", \"scope\":\"xxx\"}",
+			"type": "string"
+		},
+		{
+			"id": "4c08096a-2230-4338-a41a-4e80b87d8925",
+			"key": "username",
+			"value": "crn0",
+			"type": "string"
+		}
+	],
+	"protocolProfileBehavior": {}
+}
