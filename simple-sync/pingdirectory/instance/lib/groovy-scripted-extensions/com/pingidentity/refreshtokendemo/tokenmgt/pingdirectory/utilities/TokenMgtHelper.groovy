@@ -10,15 +10,18 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import com.unboundid.directory.sdk.common.types.UpdatableEntry;
+import com.unboundid.directory.sdk.sync.types.EndpointException;
+import com.unboundid.directory.sdk.sync.types.PostStepResult;
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.Modification;
 import com.unboundid.ldap.sdk.ModificationType;
 
 public class TokenMgtHelper {
-	private static JSONParser parser = new JSONParser();
 	
 	public static JSONObject getHttpJSONResponse(String tokenEndpoint, String data, String keystoreFileLocation,
-			String keystoreRootCAFileLocation, String keystorePassword, String[] allowedProtocols, boolean isIgnoreSSLErrors) throws Exception {
+			String keystoreRootCAFileLocation, String keystorePassword, String[] allowedProtocols, boolean isIgnoreSSLErrors) throws EndpointException, Exception {
+		final JSONParser parser = new JSONParser();
+		
 		Map<String, String> headers = new HashMap<String, String>();
 		headers.put("Content-Type", "application/x-www-form-urlencoded");
 		headers.put("Accept", "application/json");
@@ -32,20 +35,22 @@ public class TokenMgtHelper {
 			throw new Exception("Could not exchange code for access token - unhandled exception", e1);
 		}
 
-		if (tokenRespObj.getStatusCode() != 200)
+		if (tokenRespObj.getStatusCode() == 401 || tokenRespObj.getStatusCode() == 403 || tokenRespObj.getStatusCode() == 400)
 			throw new Exception(tokenRespObj.getResponseBody());
+		if (tokenRespObj.getStatusCode() != 200)
+			throw new EndpointException(PostStepResult.RETRY_OPERATION_LIMITED, String.format("Retry operation: Could not exchange code for access token - Unknown status code: %s", tokenRespObj.getStatusCode()));
 
 		String refToken = tokenRespObj.getResponseBody();
 
 		if (refToken == null || refToken.trim().equals(""))
-			throw new Exception("Could not exchange code for access token - empty response");
+			throw new EndpointException(PostStepResult.RETRY_OPERATION_LIMITED, "Retry operation: Could not exchange code for access token - empty response");
 
 		JSONObject jsonRespObj = null;
 		try {
 			jsonRespObj = (JSONObject) parser.parse(refToken);
 			return jsonRespObj;
 		} catch (ParseException e) {
-			throw new Exception(String.format("Could not exchange code for access token - JSON parse error: %s, %s", e.getMessage(), refToken));
+			throw new EndpointException(PostStepResult.RETRY_OPERATION_LIMITED, String.format("Retry operation: Could not exchange code for access token - JSON parse error: %s, %s", e.getMessage(), refToken), e);
 		}
 
 	}
@@ -91,7 +96,7 @@ public class TokenMgtHelper {
 
 	public static Map<String, String> processRefreshToken(String refreshToken, String keystoreFileLocation,
 			String keystoreRootCAFileLocation, String keystorePassword, String clientId,
-			String audience, String jwk, String tokenEndpoint, boolean isIgnoreSSLErrors) throws Exception {
+			String audience, String jwk, String tokenEndpoint, boolean isIgnoreSSLErrors) throws EndpointException, Exception {
 
 
 		String[] allowedProtocols = null;
@@ -122,8 +127,10 @@ public class TokenMgtHelper {
 		
 		Map<String, String> returnMap = new HashMap<String, String>();
 
-		if(accessToken != null)
-			returnMap.put("tokenMgtAccessTokenJWT", accessToken);
+		if(accessToken == null)
+			throw new EndpointException(PostStepResult.RETRY_OPERATION_LIMITED, "Retry operation: Could not receive access_token");
+			
+		returnMap.put("tokenMgtAccessTokenJWT", accessToken);
 		
 		if(newRefreshToken != null)
 			returnMap.put("tokenMgtRefreshToken", newRefreshToken);

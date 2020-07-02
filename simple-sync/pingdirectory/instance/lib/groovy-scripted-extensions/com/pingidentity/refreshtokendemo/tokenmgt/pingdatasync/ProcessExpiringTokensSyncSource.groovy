@@ -77,7 +77,7 @@ public final class ProcessExpiringTokensSyncSource extends ScriptedSyncSource
 
 	private LDAPConnectionPool ldapConnection = null;
 
-	String[] changeAttributeNames = null;
+	private String[] changeAttributeNames = null;
 
 	@Override
 	public void defineConfigArguments(final ArgumentParser parser) throws ArgumentException {
