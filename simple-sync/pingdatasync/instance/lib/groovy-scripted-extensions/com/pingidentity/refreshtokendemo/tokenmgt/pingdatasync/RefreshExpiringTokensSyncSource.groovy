@@ -233,7 +233,7 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 	public void listAllEntries(final BlockingQueue<ChangeRecord> outputQueue) throws EndpointException {
 
 		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, "TokenMgt: listAllEntries");
-		buildChangeRecords(outputQueue, 0L);
+		buildChangeRecords(outputQueue, 0L, -1);
 	}
 
 	@Override
@@ -257,7 +257,7 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 
 		Long startPoint = (Long) this.getStartpoint();
 		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, "TokenMgt: getNextBatchOfChanges");
-		buildChangeRecords(returnChangeRecords, startPoint);
+		buildChangeRecords(returnChangeRecords, startPoint, maxChanges);
 
 		return returnChangeRecords;
 	}
@@ -355,7 +355,7 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 	public void acknowledgeCompletedOps(LinkedList<SyncOperation> completedOps) throws EndpointException {
 	}
 
-	private void buildChangeRecords(Collection<ChangeRecord> outputQueue, Long startPoint) {
+	private void buildChangeRecords(Collection<ChangeRecord> outputQueue, Long startPoint, int maxChanges) {
 		String baseDN = "ou=adr-clients,o=sync";
 
 		Long compareEpochSeconds = Instant.now().getEpochSecond() + refreshAdvancePeriodSeconds;
@@ -374,11 +374,21 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 
 		List<SearchResultEntry> searchEntries = searchResult.getSearchEntries();
 
+		
 		if (searchEntries != null) {
 			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
 					String.format("TokenMgt: results found size=%s", searchResult.getSearchEntries().size()));
+			
+			int counter = 0;
 			for (SearchResultEntry searchEntry : searchEntries) {
 
+				if(maxChanges > 0 && counter >= maxChanges)
+				{
+					this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+							"TokenMgt: max changes reached - skipping the rest so it's processed later. ");
+					break;
+				}
+				
 				this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
 						String.format("TokenMgt: adding change item, DN=%s", searchEntry.getDN()));
 
