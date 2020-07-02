@@ -8,9 +8,30 @@ dsconfig create-sync-destination --destination-name Dest-LogTokenChanges --type 
                                                                                          
 # [01/Jul/2020:10:14:52.470 +0000] conn=121 op=6220 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.144.4 to=192.168.144.3
 # Undo command: dsconfig delete-sync-pipe --pipe-name Pipe-ProcessExpiringAccessTokens
-dsconfig create-sync-pipe --pipe-name Pipe-ProcessExpiringAccessTokens --set started:true --set sync-source:Source-QueryExpiringAccessTokens --set sync-destination:Dest-LogTokenChanges --set include-changes-for-unchanged-attributes:true --set "change-detection-polling-interval:10 s" --set max-operation-attempts:1
+dsconfig create-sync-pipe --pipe-name Pipe-ProcessExpiringAccessTokens --set started:false --set sync-source:Source-QueryExpiringAccessTokens --set sync-destination:Dest-LogTokenChanges --set include-changes-for-unchanged-attributes:true --set "change-detection-polling-interval:10 s" --set max-operation-attempts:1
                                                                                                                 
 # [01/Jul/2020:10:15:20.885 +0000] conn=121 op=6245 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.144.4 to=192.168.144.3
 # Undo command: dsconfig delete-sync-class --pipe-name Pipe-ProcessExpiringAccessTokens --class-name tokenMgt
 dsconfig create-sync-class --pipe-name Pipe-ProcessExpiringAccessTokens --class-name tokenMgt --set auto-mapped-source-attribute:-all- --set attribute-synchronization-mode:all-attributes --set modifies-as-creates:true --set creates-as-modifies:true
+
+
+# [02/Jul/2020:00:13:48.647 +0000] conn=27 op=73 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.21.0.2 to=172.21.0.3
+# Undo command: dsconfig delete-sync-source --source-name Source-RefreshExpiringAccessTokens
+dsconfig create-sync-source --source-name Source-RefreshExpiringAccessTokens --type groovy-scripted --set script-argument:refresh-advanced-notice-seconds=420 --set script-argument:pingdirectory-external-server-id=pingdirectory --set script-argument:mtls-keystore-ca-location=/tmp/server-profile/scripts/postman/cert/public.cer --set script-argument:mtls-keystore-location=/tmp/server-profile/scripts/postman/cert/network.p12 --set 'script-argument:mtls-keystore-password=P@ssword1' --set script-class:com.pingidentity.refreshtokendemo.tokenmgt.pingdatasync.RefreshExpiringTokensSyncSource
+
+
+# [02/Jul/2020:00:14:43.915 +0000] conn=27 op=109 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.21.0.2 to=172.21.0.3
+# Undo command: dsconfig delete-sync-destination --destination-name Dest-PingDirectory
+dsconfig create-sync-destination --destination-name Dest-PingDirectory --type ping-identity --set base-dn:ou=adr-clients,o=sync --set server:pingdirectory
+
+
+# [02/Jul/2020:00:15:31.019 +0000] conn=27 op=166 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.21.0.2 to=172.21.0.3
+# Undo command: dsconfig delete-sync-pipe --pipe-name Pipe-RefreshExpiringTokens
+dsconfig create-sync-pipe --pipe-name Pipe-RefreshExpiringTokens --set started:true --set sync-source:Source-RefreshExpiringAccessTokens --set sync-destination:Dest-PingDirectory --set include-changes-for-unchanged-attributes:true --set "change-detection-polling-interval:10 s"
+
+# [02/Jul/2020:00:16:38.419 +0000] conn=27 op=188 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.21.0.2 to=172.21.0.3
+# Undo command: dsconfig delete-sync-class --pipe-name Pipe-RefreshExpiringTokens --class-name tokenMgt
+dsconfig create-sync-class --pipe-name Pipe-RefreshExpiringTokens --class-name tokenMgt --set auto-mapped-source-attribute:tokenMgtAccessTokenJSON --set auto-mapped-source-attribute:tokenMgtAccessTokenJWT --set auto-mapped-source-attribute:tokenMgtIDTokenJSON --set auto-mapped-source-attribute:tokenMgtIDTokenJWT --set auto-mapped-source-attribute:tokenMgtRefreshToken --set modifies-as-creates:true --set creates-as-modifies:true --set attribute-synchronization-mode:all-attributes 
+
+
 

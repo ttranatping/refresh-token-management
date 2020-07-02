@@ -1,6 +1,5 @@
 package com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory.utilities;
 
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -46,7 +45,7 @@ public class TokenMgtHelper {
 			jsonRespObj = (JSONObject) parser.parse(refToken);
 			return jsonRespObj;
 		} catch (ParseException e) {
-			throw new Exception("Could not exchange code for access token - JSON parse error", e);
+			throw new Exception(String.format("Could not exchange code for access token - JSON parse error: %s, %s", e.getMessage(), refToken));
 		}
 
 	}
@@ -115,7 +114,7 @@ public class TokenMgtHelper {
 		String accessToken = (jsonRespObj.containsKey("access_token")) ? jsonRespObj.get("access_token").toString()
 				: null;
 		String newRefreshToken = (jsonRespObj.containsKey("refresh_token")) ? jsonRespObj.get("refresh_token").toString()
-				: null;
+				: refreshToken;
 		String idToken = (jsonRespObj.containsKey("id_token")) ? jsonRespObj.get("id_token").toString() : null;
 
 		String accessTokenJSON = TokenMgtHelper.getJWTJSON(accessToken);
@@ -123,11 +122,20 @@ public class TokenMgtHelper {
 		
 		Map<String, String> returnMap = new HashMap<String, String>();
 
-		returnMap.put("tokenMgtAccessTokenJWT", accessToken);
-		returnMap.put("tokenMgtRefreshToken", newRefreshToken);
-		returnMap.put("tokenMgtIDTokenJWT", idToken);
-		returnMap.put("tokenMgtAccessTokenJSON", accessTokenJSON);
-		returnMap.put("tokenMgtIDTokenJSON", idTokenJSON);
+		if(accessToken != null)
+			returnMap.put("tokenMgtAccessTokenJWT", accessToken);
+		
+		if(newRefreshToken != null)
+			returnMap.put("tokenMgtRefreshToken", newRefreshToken);
+
+		if(idToken != null)
+			returnMap.put("tokenMgtIDTokenJWT", idToken);
+
+		if(accessTokenJSON != null)
+			returnMap.put("tokenMgtAccessTokenJSON", accessTokenJSON);
+		
+		if(idTokenJSON != null)
+			returnMap.put("tokenMgtIDTokenJSON", idTokenJSON);
 		
 		return returnMap;
 	}

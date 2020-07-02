@@ -27,14 +27,18 @@
 package com.pingidentity.refreshtokendemo.tokenmgt.pingdatasync;
 
 import java.io.Serializable;
+import java.security.Security;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory.utilities.TokenMgtHelper;
 import com.unboundid.directory.sdk.common.types.LogSeverity;
@@ -91,7 +95,13 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 	private String keystoreRootCAFileLocation;
 	private String keystorePassword;
 
-	boolean isIgnoreSSLErrors = false;
+	private boolean isIgnoreSSLErrors = false;
+	
+	private List<String> processedDNCache = new ArrayList<String>(10000);
+
+	public RefreshExpiringTokensSyncSource() {
+		Security.addProvider(new BouncyCastleProvider());
+	}
 
 	@Override
 	public void defineConfigArguments(final ArgumentParser parser) throws ArgumentException {
@@ -185,19 +195,19 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 		} catch (LDAPException e) {
 			this.serverContext.logMessage(LogSeverity.FATAL_ERROR,
 					String.format("Unable to connect to external server: %s", ldapExternalServerCfgObjectName));
-
-			final StringArgument arg3 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_CA_LOCATION);
-			this.keystoreRootCAFileLocation = arg3.getValue();
-
-			final StringArgument arg4 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_LOCATION);
-			this.keystoreFileLocation = arg4.getValue();
-
-			final StringArgument arg5 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_PASSWORD);
-			this.keystorePassword = arg5.getValue();
-
-			final StringArgument arg6 = (StringArgument) parser.getNamedArgument(CONFIG_IGNORE_SSL_ERRORS);
-			this.isIgnoreSSLErrors = (arg6 != null && arg4.toString().equalsIgnoreCase("true")) ? true : false;
 		}
+
+		final StringArgument arg3 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_CA_LOCATION);
+		this.keystoreRootCAFileLocation = arg3.getValue();
+
+		final StringArgument arg4 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_LOCATION);
+		this.keystoreFileLocation = arg4.getValue();
+
+		final StringArgument arg5 = (StringArgument) parser.getNamedArgument(CONFIG_MTLS_KEYSTORE_PASSWORD);
+		this.keystorePassword = arg5.getValue();
+
+		final StringArgument arg6 = (StringArgument) parser.getNamedArgument(CONFIG_IGNORE_SSL_ERRORS);
+		this.isIgnoreSSLErrors = (arg6 != null && arg4.toString().equalsIgnoreCase("true")) ? true : false;
 
 		changeAttributeNames = new String[3];
 		changeAttributeNames[0] = "tokenMgtExpiringToken";
@@ -211,7 +221,7 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 	}
 
 	@Override
-	public void setStartpoint(SetStartpointOptions options) throws EndpointException {
+	public void setStartpoint(SetStartpointOptions options) throws EndpointException {		
 	}
 
 	@Override
@@ -223,42 +233,7 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 	public void listAllEntries(final BlockingQueue<ChangeRecord> outputQueue) throws EndpointException {
 
 		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, "TokenMgt: listAllEntries");
-		String baseDN = "ou=adr-clients,o=sync";
-
-		Long compareEpochSeconds = Instant.now().getEpochSecond() + refreshAdvancePeriodSeconds;
-
-		String filter = String.format(CONST_DEFAULT_FILTER, "tokenMgtAccessTokenJSON", compareEpochSeconds);
-		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, String.format("TokenMgt: filter=%s", filter));
-		SearchResult searchResult = null;
-		try {
-			searchResult = ldapConnection.search(baseDN, SearchScope.SUB, filter, new String[0]);
-		} catch (LDAPSearchException e) {
-			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
-					String.format("TokenMgt: issue querying=%s", e.getExceptionMessage()));
-			return;
-		}
-
-		List<SearchResultEntry> searchEntries = searchResult.getSearchEntries();
-
-		if (searchEntries != null) {
-			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
-					String.format("TokenMgt: results found size=%s", searchResult.getSearchEntries().size()));
-			for (SearchResultEntry searchEntry : searchEntries) {
-
-				this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
-						String.format("TokenMgt: adding change item, DN=%s", searchEntry.getDN()));
-
-				ChangeRecord.Builder bldr = new ChangeRecord.Builder(ChangeType.MODIFY, searchEntry.getDN());
-
-				bldr.changedAttributes(changeAttributeNames);
-				bldr.addProperty("objectClass", "tokenMgt");
-				bldr.changeTime(System.currentTimeMillis());
-
-				ChangeRecord record = bldr.build();
-
-				outputQueue.add(record);
-			}
-		}
+		buildChangeRecords(outputQueue, 0L);
 	}
 
 	@Override
@@ -280,48 +255,9 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 			return returnChangeRecords;
 		}
 
-		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, "TokenMgt: listAllEntries");
-		String baseDN = "ou=adr-clients,o=sync";
-
-		Long compareEpochSeconds = Instant.now().getEpochSecond() + refreshAdvancePeriodSeconds;
-
-		String filter = String.format(CONST_DEFAULT_FILTER, "tokenMgtAccessTokenJSON", compareEpochSeconds);
-		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, String.format("TokenMgt: filter=%s", filter));
-		SearchResult searchResult = null;
-		String [] attributes = new String[1];
-		attributes[0] = "tokenMgtRefreshToken";
-		try {
-			searchResult = ldapConnection.search(baseDN, SearchScope.SUB, filter, attributes);
-		} catch (LDAPSearchException e) {
-			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
-					String.format("TokenMgt: issue querying=%s", e.getExceptionMessage()));
-			return returnChangeRecords;
-		}
-
-		List<SearchResultEntry> searchEntries = searchResult.getSearchEntries();
-
-		if (searchEntries != null) {
-			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
-					String.format("TokenMgt: results found size=%s", searchResult.getSearchEntries().size()));
-			for (SearchResultEntry searchEntry : searchEntries) {
-
-				this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
-						String.format("TokenMgt: adding change item, DN=%s", searchEntry.getDN()));
-
-				ChangeRecord.Builder bldr = new ChangeRecord.Builder(ChangeType.MODIFY, searchEntry.getDN());
-
-				bldr.changedAttributes(changeAttributeNames);
-				bldr.addProperty("objectClass", "tokenMgt");
-				if(searchEntry.hasAttribute("tokenMgtRefreshToken"))
-					bldr.addProperty("tokenMgtRefreshToken", searchEntry.getAttributeValue("tokenMgtRefreshToken"));
-					
-				bldr.changeTime(System.currentTimeMillis());
-
-				ChangeRecord record = bldr.build();
-
-				returnChangeRecords.add(record);
-			}
-		}
+		Long startPoint = (Long) this.getStartpoint();
+		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, "TokenMgt: getNextBatchOfChanges");
+		buildChangeRecords(returnChangeRecords, startPoint);
 
 		return returnChangeRecords;
 	}
@@ -332,14 +268,15 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 		ChangeRecord record = operation.getChangeRecord();
 
 		String dn = record.getIdentifiableInfo().getRDNString().replaceAll("\\\\", "");
-		this.serverContext.logMessage(LogSeverity.DEBUG, String.format("TokenMgt: dn: %s", dn));
+		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, String.format("TokenMgt: dn: %s", dn));
 
 		String clientObjectDN = getParentDN(dn);
 		String filter = getFilter(dn);
-		this.serverContext.logMessage(LogSeverity.DEBUG, String.format("TokenMgt: clientObjectDN: %s", clientObjectDN));
-		this.serverContext.logMessage(LogSeverity.DEBUG, String.format("TokenMgt: filter: %s", filter));
+		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+				String.format("TokenMgt: clientObjectDN: %s", clientObjectDN));
+		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, String.format("TokenMgt: filter: %s", filter));
 
-		this.serverContext.logMessage(LogSeverity.DEBUG, String.format("TokenMgt: fetching entry, DN=%s", dn));
+		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, String.format("TokenMgt: fetching entry, DN=%s", dn));
 
 		Entry returnEntry = new Entry(dn);
 		returnEntry.addAttribute("objectClass", "tokenMgt");
@@ -354,11 +291,14 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 			if (!clientObjectEntry.hasAttribute("tokenMgtConfigClientAssertionAudience")
 					|| !clientObjectEntry.hasAttribute("tokenMgtConfigClientAssertionJWK")
 					|| !clientObjectEntry.hasAttribute("tokenMgtConfigTokenEndpoint")) {
-				setError(returnEntry, "clientObjectEntry missing configuration.");				
+				setError(returnEntry, "clientObjectEntry missing configuration.");
 				return returnEntry;
 			}
 
 			String refreshToken = record.getProperty("tokenMgtRefreshToken").toString();
+
+			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+					String.format("TokenMgt: refreshing token with: %s", refreshToken));
 
 			String clientId = clientObjectEntry.getAttributeValue("ou");
 			String audience = clientObjectEntry.getAttributeValue("tokenMgtConfigClientAssertionAudience");
@@ -369,17 +309,27 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 					keystoreFileLocation, keystoreRootCAFileLocation, keystorePassword, clientId, audience, jwk,
 					tokenEndpoint, isIgnoreSSLErrors);
 
-			for(String key: refreshTokenResultMap.keySet())
-			{
-				if(refreshTokenResultMap.get(key) == null)
+			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, "TokenMgt: refreshed token");
+
+			for (String key : refreshTokenResultMap.keySet()) {
+				String value = refreshTokenResultMap.get(key);
+				if (value == null)
 					continue;
+
+				this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+						String.format("TokenMgt: refreshed token", key, value));
 				returnEntry.addAttribute(key, refreshTokenResultMap.get(key));
 			}
 			
+			if(processedDNCache.contains(dn))
+				processedDNCache.remove(dn);
+
 			return returnEntry;
 
 		} catch (Exception e) {
-			setError(returnEntry, String.format("TokenMgt: did not fetch entry, DN=%s", dn));				
+			String errorMsg = String.format("TokenMgt: did not fetch entry, DN= %s, error: %s", dn, e.getMessage());
+			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, errorMsg);
+			setError(returnEntry, errorMsg);
 			return returnEntry;
 		}
 	}
@@ -403,6 +353,53 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 
 	@Override
 	public void acknowledgeCompletedOps(LinkedList<SyncOperation> completedOps) throws EndpointException {
+	}
+
+	private void buildChangeRecords(Collection<ChangeRecord> outputQueue, Long startPoint) {
+		String baseDN = "ou=adr-clients,o=sync";
+
+		Long compareEpochSeconds = Instant.now().getEpochSecond() + refreshAdvancePeriodSeconds;
+
+		String filter = String.format(CONST_DEFAULT_FILTER, "tokenMgtAccessTokenJSON", compareEpochSeconds);
+		
+		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, String.format("TokenMgt: filter=%s", filter));
+		SearchResult searchResult = null;
+		try {
+			searchResult = ldapConnection.search(baseDN, SearchScope.SUB, filter, new String[0]);
+		} catch (LDAPSearchException e) {
+			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+					String.format("TokenMgt: issue querying=%s", e.getExceptionMessage()));
+			return;
+		}
+
+		List<SearchResultEntry> searchEntries = searchResult.getSearchEntries();
+
+		if (searchEntries != null) {
+			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+					String.format("TokenMgt: results found size=%s", searchResult.getSearchEntries().size()));
+			for (SearchResultEntry searchEntry : searchEntries) {
+
+				this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+						String.format("TokenMgt: adding change item, DN=%s", searchEntry.getDN()));
+
+				if(processedDNCache.contains(searchEntry.getDN()))
+					continue;
+				else
+					processedDNCache.add(searchEntry.getDN());
+				
+				ChangeRecord.Builder bldr = new ChangeRecord.Builder(ChangeType.MODIFY, searchEntry.getDN());
+
+				bldr.changedAttributes(changeAttributeNames);
+				bldr.addProperty("objectClass", "tokenMgt");
+				bldr.changeTime(System.currentTimeMillis());
+				if (searchEntry.hasAttribute("tokenMgtRefreshToken"))
+					bldr.addProperty("tokenMgtRefreshToken", searchEntry.getAttributeValue("tokenMgtRefreshToken"));
+
+				ChangeRecord record = bldr.build();
+
+				outputQueue.add(record);
+			}
+		}
 	}
 
 }

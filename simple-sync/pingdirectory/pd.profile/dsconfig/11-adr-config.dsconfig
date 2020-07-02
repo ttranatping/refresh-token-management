@@ -266,7 +266,7 @@ dsconfig create-request-criteria --criteria-name TokenMgtSearchCriteria --type s
 
 # [01/Jul/2020:01:49:40.445 +0000] Offline changes by root
 # Undo command: dsconfig delete-plugin --plugin-name TokenManagement-SearchEntry-RefreshToken
-dsconfig create-plugin --plugin-name TokenManagement-SearchEntry-RefreshToken --type groovy-scripted --set enabled:true --set plugin-type:searchresultentry --set script-argument:mtls-keystore-ca-location=/tmp/server-profile/scripts/postman/cert/public.cer --set script-argument:mtls-keystore-location=/tmp/server-profile/scripts/postman/cert/network.p12 --set 'script-argument:mtls-keystore-password=P@ssword1' --set 'script-argument:refresh-advance-seconds=300' --set script-class:com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory.TokenMgtRetrieveRefreshTokenPlugin --set request-criteria:TokenMgtSearchCriteria
+dsconfig create-plugin --plugin-name TokenManagement-SearchEntry-RefreshToken --type groovy-scripted --set enabled:false --set plugin-type:searchresultentry --set script-argument:mtls-keystore-ca-location=/tmp/server-profile/scripts/postman/cert/public.cer --set script-argument:mtls-keystore-location=/tmp/server-profile/scripts/postman/cert/network.p12 --set 'script-argument:mtls-keystore-password=P@ssword1' --set 'script-argument:refresh-advance-seconds=300' --set script-class:com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory.TokenMgtRetrieveRefreshTokenPlugin --set request-criteria:TokenMgtSearchCriteria
 
 
 # [01/Jul/2020:05:23:09.040 +0000] conn=107 op=22 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.144.4 to=192.168.144.2
