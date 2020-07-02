@@ -1,4 +1,4 @@
-tenant=tenant1
+tenant=tenant2
 
 # 1 - Register client
 newman run tokenmgt.postman_collection.json --ssl-client-cert-list ssl-client-cert-list.json --ignore-redirects --insecure --folder "1 - Register client" --export-environment current.env --env-var tenant=${tenant}

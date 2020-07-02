@@ -1,3 +1,4 @@
+
 package com.pingidentity.refreshtokendemo.tokenmgt.pingdirectory.utilities;
 
 import java.util.Base64;
@@ -45,7 +46,7 @@ public class TokenMgtHelper {
 			jsonRespObj = (JSONObject) parser.parse(refToken);
 			return jsonRespObj;
 		} catch (ParseException e) {
-			throw new Exception(String.format("Could not exchange code for access token - JSON parse error: %s, %s", e.getMessage(), refToken));
+			throw new Exception(String.format("Could not exchange code for access token - JSON parse error: %s, %s", e.getMessage(), refToken), e);
 		}
 
 	}
