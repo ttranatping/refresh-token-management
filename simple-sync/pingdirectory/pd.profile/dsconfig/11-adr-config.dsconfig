@@ -289,6 +289,6 @@ dsconfig create-local-db-index --backend-name userRoot --index-name tokenMgtRefr
 
 # [02/Jul/2020:05:59:41.926 +0000] conn=38 op=408 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.22.0.3 to=172.22.0.4
 # Undo command: dsconfig delete-plugin --plugin-name "Purge revoked tokens"
-dsconfig create-plugin --plugin-name "Purge revoked tokens" --type purge-expired-data --set enabled:true --set datetime-attribute:modifyTimestamp --set "expiration-offset:10 m" --set purge-behavior:delete-entries --set 'filter:(&(objectClass=tokenMgt)(tokenMgtLastStatusError=*))'
+dsconfig create-plugin --plugin-name "TokenManagement-Purge revoked tokens" --type purge-expired-data --set enabled:true --set datetime-attribute:modifyTimestamp --set "expiration-offset:4 m" --set purge-behavior:delete-entries --set 'filter:(&(objectClass=tokenMgt)(tokenMgtLastStatusError=*))'
 
 
