@@ -280,7 +280,7 @@ dsconfig create-json-attribute-constraints --attribute-type tokenMgtAccessTokenJ
 dsconfig create-json-field-constraints --attribute-type tokenMgtAccessTokenJSON --json-field exp --set value-type:integer --set is-required:true --set index-values:true --set prime-index:true
 
 # [01/Jul/2020:12:10:48.764 +0000] conn=219 op=390 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.160.2 to=192.168.160.4
-# Undo command: dsconfig delete-local-db-index --backend-name userRoot --index-name tokenMgtLastStatusError                           
+# Undo command: dsconfig delete-local-db-index --backend-name userRoot --index-name tokenMgtLastStatusError
 dsconfig create-local-db-index --backend-name userRoot --index-name tokenMgtLastStatusError --set index-type:equality --set prime-index:true
 
 # [01/Jul/2020:12:10:48.764 +0000] conn=219 op=390 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=192.168.160.2 to=192.168.160.4
@@ -291,4 +291,32 @@ dsconfig create-local-db-index --backend-name userRoot --index-name tokenMgtRefr
 # Undo command: dsconfig delete-plugin --plugin-name "Purge revoked tokens"
 dsconfig create-plugin --plugin-name "TokenManagement-Purge revoked tokens" --type purge-expired-data --set enabled:true --set datetime-attribute:modifyTimestamp --set "expiration-offset:4 m" --set purge-behavior:delete-entries --set 'filter:(&(objectClass=tokenMgt)(tokenMgtLastStatusError=*))'
 
+# [02/Jul/2020:09:16:27.881 +0000] conn=111 op=1818 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.24.0.2 to=172.24.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig set-scim-resource-type-prop --type-name ADRConfiguration --set "create-dn-pattern:ou={ou},ou={tokenMgtTenant},ou=adr-clients,o=sync"
+dsconfig set-scim-resource-type-prop --type-name ADRConfiguration --set "create-dn-pattern:ou={ou},ou={tokenMgtConfigTenant},ou=adr-clients,o=sync"
 
+# [02/Jul/2020:09:16:50.742 +0000] conn=111 op=1869 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.24.0.2 to=172.24.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:config --attribute-name tenant
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:config --attribute-name tenant --set required:true --set mutability:immutable
+
+# [02/Jul/2020:09:17:24.917 +0000] conn=111 op=2010 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.24.0.2 to=172.24.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute-mapping --type-name ADRConfiguration --mapping-name tenant
+dsconfig create-scim-attribute-mapping --type-name ADRConfiguration --mapping-name tenant --set scim-resource-type-attribute:tenant --set ldap-attribute:tokenMgtConfigTenant --set searchable:true --set authoritative:true
+
+# [02/Jul/2020:09:19:34.336 +0000] conn=111 op=2186 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.24.0.2 to=172.24.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name tenant
+dsconfig create-scim-attribute --schema-name urn:pingidentity:adr:token:instance --attribute-name tenant --set required:true --set mutability:immutable
+
+# [02/Jul/2020:09:20:14.508 +0000] conn=111 op=2324 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.24.0.2 to=172.24.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig delete-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name tenant
+dsconfig create-scim-attribute-mapping --type-name ADRTokenInstance --mapping-name tenant --set scim-resource-type-attribute:tenant --set ldap-attribute:tokenMgtTenant --set authoritative:true
+
+# [02/Jul/2020:09:20:22.443 +0000] conn=111 op=2377 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.24.0.2 to=172.24.0.4
+# This change was made to mirrored configuration data, which is automatically kept in sync across all servers.
+# Undo command: dsconfig set-scim-resource-type-prop --type-name ADRTokenInstance --set "create-dn-pattern:entryUUID=server-generated,ou={tokenMgtClientId},ou=adr-clients,o=sync"
+dsconfig set-scim-resource-type-prop --type-name ADRTokenInstance --set "create-dn-pattern:entryUUID=server-generated,ou={tokenMgtClientId},ou={tokenMgtTenant},ou=adr-clients,o=sync"
