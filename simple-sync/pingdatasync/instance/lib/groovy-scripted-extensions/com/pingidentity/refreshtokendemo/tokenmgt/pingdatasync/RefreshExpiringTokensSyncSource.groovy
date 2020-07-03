@@ -249,12 +249,12 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 
 		List<ChangeRecord> returnChangeRecords = new ArrayList<ChangeRecord>(maxChanges);
 
-		if (numStillPending.intValue() > 0) {
-			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
-					String.format("TokenMgt: there are still pending tasks=%s", numStillPending.intValue()));
-
-			return returnChangeRecords;
-		}
+//		if (numStillPending.intValue() > 0) {
+//			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+//					String.format("TokenMgt: there are still pending tasks=%s", numStillPending.intValue()));
+//
+//			return returnChangeRecords;
+//		}
 
 		Long startPoint = (Long) this.getStartpoint();
 		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, "TokenMgt: getNextBatchOfChanges");
