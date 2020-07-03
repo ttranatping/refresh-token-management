@@ -323,12 +323,12 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 			return returnEntry;
 
 		}
-//		catch(EndpointException e)
-//		{
-//			String errorMsg = String.format("TokenMgt: did not fetch entry, DN= %s, error: %s. Retrying...", dn, e.getMessage());
-//			this.serverContext.logMessage(LogSeverity.DEBUG, errorMsg);	
-//			throw e;
-//		}
+		catch(EndpointException e)
+		{
+			String errorMsg = String.format("TokenMgt: did not fetch entry, DN= %s, error: %s. Retrying...", dn, e.getMessage());
+			this.serverContext.logMessage(LogSeverity.DEBUG, errorMsg);	
+			throw e;
+		}
 		catch (Exception e) {
 			String errorMsg = String.format("TokenMgt: did not fetch entry, DN= %s, error: %s", dn, e.getMessage());
 			this.serverContext.logMessage(LogSeverity.DEBUG, errorMsg);			
