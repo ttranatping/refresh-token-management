@@ -233,7 +233,7 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 	@Override
 	public void listAllEntries(final BlockingQueue<ChangeRecord> outputQueue) throws EndpointException {
 
-		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, "TokenMgt: listAllEntries");
+		this.serverContext.logMessage(LogSeverity.DEBUG, "TokenMgt: listAllEntries");
 		buildChangeRecords(outputQueue, 0L, -1);
 	}
 
@@ -249,15 +249,15 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 
 		List<ChangeRecord> returnChangeRecords = new ArrayList<ChangeRecord>(maxChanges);
 
-//		if (numStillPending.intValue() > 0) {
-//			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
-//					String.format("TokenMgt: there are still pending tasks=%s", numStillPending.intValue()));
-//
-//			return returnChangeRecords;
-//		}
+		if (numStillPending.intValue() > 0) {
+			this.serverContext.logMessage(LogSeverity.DEBUG,
+					String.format("TokenMgt: there are still pending tasks=%s", numStillPending.intValue()));
+
+			return returnChangeRecords;
+		}
 
 		Long startPoint = (Long) this.getStartpoint();
-		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, "TokenMgt: getNextBatchOfChanges");
+		this.serverContext.logMessage(LogSeverity.DEBUG, "TokenMgt: getNextBatchOfChanges");
 		buildChangeRecords(returnChangeRecords, startPoint, maxChanges);
 
 		return returnChangeRecords;
@@ -269,15 +269,15 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 		ChangeRecord record = operation.getChangeRecord();
 
 		String dn = record.getIdentifiableInfo().getRDNString().replaceAll("\\\\", "");
-		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, String.format("TokenMgt: dn: %s", dn));
+		this.serverContext.logMessage(LogSeverity.DEBUG, String.format("TokenMgt: dn: %s", dn));
 
 		String clientObjectDN = getParentDN(dn);
 		String filter = getFilter(dn);
-		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+		this.serverContext.logMessage(LogSeverity.DEBUG,
 				String.format("TokenMgt: clientObjectDN: %s", clientObjectDN));
-		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, String.format("TokenMgt: filter: %s", filter));
+		this.serverContext.logMessage(LogSeverity.DEBUG, String.format("TokenMgt: filter: %s", filter));
 
-		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, String.format("TokenMgt: fetching entry, DN=%s", dn));
+		this.serverContext.logMessage(LogSeverity.DEBUG, String.format("TokenMgt: fetching entry, DN=%s", dn));
 
 		Entry returnEntry = new Entry(dn);
 		returnEntry.addAttribute("objectClass", "tokenMgt");
@@ -298,7 +298,7 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 
 			String refreshToken = record.getProperty("tokenMgtRefreshToken").toString();
 
-			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+			this.serverContext.logMessage(LogSeverity.DEBUG,
 					String.format("TokenMgt: refreshing token with: %s", refreshToken));
 
 			String clientId = clientObjectEntry.getAttributeValue("ou");
@@ -310,14 +310,14 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 					keystoreFileLocation, keystoreRootCAFileLocation, keystorePassword, clientId, audience, jwk,
 					tokenEndpoint, isIgnoreSSLErrors);
 
-			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, "TokenMgt: refreshed token");
+			this.serverContext.logMessage(LogSeverity.DEBUG, "TokenMgt: refreshed token");
 
 			for (String key : refreshTokenResultMap.keySet()) {
 				String value = refreshTokenResultMap.get(key);
 				if (value == null)
 					continue;
 
-				this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+				this.serverContext.logMessage(LogSeverity.DEBUG,
 						String.format("TokenMgt: refreshed token", key, value));
 				returnEntry.addAttribute(key, refreshTokenResultMap.get(key));
 			}
@@ -331,12 +331,12 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 		catch(EndpointException e)
 		{
 			String errorMsg = String.format("TokenMgt: did not fetch entry, DN= %s, error: %s. Retrying...", dn, e.getMessage());
-			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, errorMsg);	
+			this.serverContext.logMessage(LogSeverity.DEBUG, errorMsg);	
 			throw e;
 		}
 		catch (Exception e) {
 			String errorMsg = String.format("TokenMgt: did not fetch entry, DN= %s, error: %s", dn, e.getMessage());
-			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, errorMsg);			
+			this.serverContext.logMessage(LogSeverity.DEBUG, errorMsg);			
 			setError(record, returnEntry, errorMsg);
 			return returnEntry;
 		}
@@ -385,7 +385,7 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 
 		String filter = String.format(CONST_DEFAULT_FILTER, "tokenMgtAccessTokenJSON", compareEpochSeconds);
 		
-		this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, String.format("TokenMgt: filter=%s", filter));
+		this.serverContext.logMessage(LogSeverity.DEBUG, String.format("TokenMgt: filter=%s", filter));
 		SearchResult searchResult = null;
 		String [] attributes = new String[5];
 		attributes[0] = "tokenMgtRefreshToken";
@@ -397,7 +397,7 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 		try {
 			searchResult = ldapConnection.search(baseDN, SearchScope.SUB, filter, attributes);
 		} catch (LDAPSearchException e) {
-			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+			this.serverContext.logMessage(LogSeverity.DEBUG,
 					String.format("TokenMgt: issue querying=%s", e.getExceptionMessage()));
 			return;
 		}
@@ -406,7 +406,7 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 
 		
 		if (searchEntries != null) {
-			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+			this.serverContext.logMessage(LogSeverity.DEBUG,
 					String.format("TokenMgt: results found size=%s", searchResult.getSearchEntries().size()));
 			
 			int counter = 0;
@@ -414,14 +414,14 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 
 				if(maxChanges > 0 && counter >= maxChanges)
 				{
-					this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+					this.serverContext.logMessage(LogSeverity.DEBUG,
 							"TokenMgt: max changes reached - skipping the rest so it's processed later. ");
 					break;
 				}
 				else
 					counter++;
 				
-				this.serverContext.logMessage(LogSeverity.SEVERE_WARNING,
+				this.serverContext.logMessage(LogSeverity.DEBUG,
 						String.format("TokenMgt: adding change item, DN=%s", searchEntry.getDN()));
 
 				if(processedDNCache.contains(searchEntry.getDN()))
