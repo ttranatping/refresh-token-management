@@ -337,7 +337,7 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 		catch (Exception e) {
 			String errorMsg = String.format("TokenMgt: did not fetch entry, DN= %s, error: %s", dn, e.getMessage());
 			this.serverContext.logMessage(LogSeverity.SEVERE_WARNING, errorMsg);			
-			setError(record, returnEntry, String.format("Unhandled: %s", errorMsg));
+			setError(record, returnEntry, errorMsg);
 			return returnEntry;
 		}
 	}
