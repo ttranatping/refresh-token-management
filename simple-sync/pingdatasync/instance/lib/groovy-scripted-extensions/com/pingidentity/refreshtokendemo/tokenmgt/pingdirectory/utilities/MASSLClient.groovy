@@ -15,7 +15,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpDelete;
@@ -23,11 +22,19 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.HttpClientConnectionManager;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
@@ -39,6 +46,8 @@ public class MASSLClient {
 	private final static HostnameVerifier DEFAULT_HOSTNAMEVERIFIER = SSLConnectionSocketFactory
 			.getDefaultHostnameVerifier();
 
+	private final static HttpClientConnectionManager poolingConnManager = new PoolingHttpClientConnectionManager();
+
 	private static Map<String, KeyStore> keyStoreCache = new HashMap<String, KeyStore>();
 
 	public static void removeKeystoreCacheItem(String keystoreIdentifier) {
@@ -47,26 +56,27 @@ public class MASSLClient {
 	}
 
 	public static HttpResponseObj executeGETHTTP(String url, Map<String, String> headers, String[] httpsProtocolSupport,
-			String keystoreLocation, String rootCALocation, String keystorePassword, String keystoreType, boolean ignoreSSLErrors,
-			int requestTimeout) throws Exception {
+			String keystoreLocation, String rootCALocation, String keystorePassword, String keystoreType,
+			boolean ignoreSSLErrors, int requestTimeout) throws Exception {
 
-		return executeHTTP(url, "GET", headers, new StringEntity(""), httpsProtocolSupport, keystoreLocation, rootCALocation,
-				keystorePassword, keystoreType, ignoreSSLErrors, requestTimeout);
+		return executeHTTP(url, "GET", headers, new StringEntity(""), httpsProtocolSupport, keystoreLocation,
+				rootCALocation, keystorePassword, keystoreType, ignoreSSLErrors, requestTimeout);
 	}
 
 	public static HttpResponseObj executeHTTP(String url, String method, Map<String, String> headers, String data,
-			String[] httpsProtocolSupport, String keystoreLocation, String rootCALocation, String keystorePassword, String keystoreType,
-			boolean ignoreSSLErrors, int requestTimeout) throws Exception {
+			String[] httpsProtocolSupport, String keystoreLocation, String rootCALocation, String keystorePassword,
+			String keystoreType, boolean ignoreSSLErrors, int requestTimeout) throws Exception {
 
 		StringEntity entity = new StringEntity(data);
 
-		return executeHTTP(url, method, headers, entity, httpsProtocolSupport, keystoreLocation, keystoreType, rootCALocation, keystorePassword, ignoreSSLErrors,
-				requestTimeout);
+		return executeHTTP(url, method, headers, entity, httpsProtocolSupport, keystoreLocation, keystoreType,
+				rootCALocation, keystorePassword, ignoreSSLErrors, requestTimeout);
 	}
 
 	public static HttpResponseObj executeHTTP(String url, String method, Map<String, String> headers,
 			Map<String, String> params, String[] httpsProtocolSupport, String keystoreLocation, String rootCALocation,
-			String keystorePassword, String keystoreType, boolean ignoreSSLErrors, int requestTimeout) throws Exception {
+			String keystorePassword, String keystoreType, boolean ignoreSSLErrors, int requestTimeout)
+			throws Exception {
 
 		List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
 		if (params != null) {
@@ -80,22 +90,22 @@ public class MASSLClient {
 
 		UrlEncodedFormEntity entity = new UrlEncodedFormEntity(urlParameters);
 
-		return executeHTTP(url, method, headers, entity, httpsProtocolSupport, keystoreLocation, keystoreType, rootCALocation, keystorePassword, ignoreSSLErrors,
-				requestTimeout);
+		return executeHTTP(url, method, headers, entity, httpsProtocolSupport, keystoreLocation, keystoreType,
+				rootCALocation, keystorePassword, ignoreSSLErrors, requestTimeout);
 	}
 
 	public static HttpResponseObj executeHTTP(String url, String method, Map<String, String> headers,
-			StringEntity stringEntity, String[] httpsProtocolSupport, String keystoreLocation, String keystoreType, String rootCALocation,
-			String keystorePassword, boolean ignoreSSLErrors, int requestTimeout) throws Exception {
+			StringEntity stringEntity, String[] httpsProtocolSupport, String keystoreLocation, String keystoreType,
+			String rootCALocation, String keystorePassword, boolean ignoreSSLErrors, int requestTimeout)
+			throws Exception {
 
 		if (LOGGER.isTraceEnabled()) {
 			LOGGER.trace(String.format("Executing HTTP request with url: %s, method: %s, isIgnoreSSL: %s", url, method,
 					String.valueOf(ignoreSSLErrors)));
 		}
 
-		if (httpsProtocolSupport == null || httpsProtocolSupport.length == 0)
-		{
-			String [] protocols = new String[1];
+		if (httpsProtocolSupport == null || httpsProtocolSupport.length == 0) {
+			String[] protocols = new String[1];
 			protocols[0] = "TLSv1.2";
 
 			httpsProtocolSupport = protocols;
@@ -110,7 +120,8 @@ public class MASSLClient {
 			String[] certFiles = new String[1];
 			certFiles[0] = rootCALocation;
 
-			KeyStore keystore = KeyStoreCreator.getKeyStore(keystorePassword, keystoreLocation, certFiles, keystoreType);
+			KeyStore keystore = KeyStoreCreator.getKeyStore(keystorePassword, keystoreLocation, certFiles,
+					keystoreType);
 
 			if (LOGGER.isTraceEnabled())
 				LOGGER.trace("Attempting to load private credentials");
@@ -130,32 +141,39 @@ public class MASSLClient {
 			sslCtx.loadKeyMaterial(keystore, keystorePassword.toCharArray());
 		}
 
-		//TODO: reintroduce this
+		// TODO: reintroduce this
 		if (ignoreSSLErrors) {
 			hostnameVerifier = new NoopHostnameVerifier();
-			sslCtx.loadTrustMaterial(
-				    null,
-				    new TrustStrategy ()
-				    {
+			sslCtx.loadTrustMaterial(null, new TrustStrategy() {
 
-						@Override
-						public boolean isTrusted(java.security.cert.X509Certificate[] arg0, String arg1)
-								throws java.security.cert.CertificateException {
-							// TODO Auto-generated method stub
-							return true;
-						}
-				    });
+				@Override
+				public boolean isTrusted(java.security.cert.X509Certificate[] arg0, String arg1)
+						throws java.security.cert.CertificateException {
+					// TODO Auto-generated method stub
+					return true;
+				}
+			});
 		}
 
 		SSLContext sslCtxBuild = sslCtx.build();
 
-		SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sslCtxBuild, httpsProtocolSupport,
-				null, hostnameVerifier);
+		Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+				.register("http", PlainConnectionSocketFactory.getSocketFactory())
+				.register("https", new SSLConnectionSocketFactory(sslCtxBuild)).build();
 
-		HttpClient client = HttpClients.custom().setSSLSocketFactory(socketFactory).build();
+		HttpClientContext clientContext = HttpClientContext.create();
+		clientContext.setAttribute("http.socket-factory-registry", socketFactoryRegistry);
+
+//		SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sslCtxBuild, httpsProtocolSupport,
+//				null, hostnameVerifier);
+		CloseableHttpClient httpClient = HttpClientBuilder.create().setSSLContext(SSLContexts.createSystemDefault())
+				.build();
+
+//		HttpClient client = HttpClients.custom().setSSLSocketFactory(socketFactory)
+//				.setConnectionManager(poolingConnManager).build();
 
 		RequestConfig requestCfg = RequestConfig.custom().setConnectTimeout(requestTimeout)
-				.setSocketTimeout(requestTimeout).build();
+				.setSocketTimeout(requestTimeout).setConnectionRequestTimeout(requestTimeout).build();
 
 		HttpRequestBase request = null;
 		switch (method.toUpperCase()) {
@@ -207,7 +225,7 @@ public class MASSLClient {
 
 		request.setConfig(requestCfg);
 
-		HttpResponse response = client.execute(request);
+		HttpResponse response = httpClient.execute(request, clientContext);
 
 		if (response == null) {
 			if (LOGGER.isTraceEnabled())
@@ -216,7 +234,7 @@ public class MASSLClient {
 			return null;
 		}
 
-		if(method.equalsIgnoreCase("delete"))
+		if (method.equalsIgnoreCase("delete"))
 			return new HttpResponseObj(response.getStatusLine().getStatusCode(), null);
 
 		BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
@@ -235,3 +253,4 @@ public class MASSLClient {
 	}
 
 }
+

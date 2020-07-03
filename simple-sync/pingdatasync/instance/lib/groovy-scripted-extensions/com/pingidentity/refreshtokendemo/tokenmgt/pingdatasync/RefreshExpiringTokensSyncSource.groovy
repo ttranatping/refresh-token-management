@@ -97,8 +97,6 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 	private String keystorePassword;
 
 	private boolean isIgnoreSSLErrors = false;
-	
-	private List<String> processedDNCache = new ArrayList<String>(10000);
 
 	public RefreshExpiringTokensSyncSource() {
 		Security.addProvider(new BouncyCastleProvider());
@@ -321,19 +319,16 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 						String.format("TokenMgt: refreshed token", key, value));
 				returnEntry.addAttribute(key, refreshTokenResultMap.get(key));
 			}
-			
-			if(processedDNCache.contains(dn))
-				processedDNCache.remove(dn);
 
 			return returnEntry;
 
 		}
-		catch(EndpointException e)
-		{
-			String errorMsg = String.format("TokenMgt: did not fetch entry, DN= %s, error: %s. Retrying...", dn, e.getMessage());
-			this.serverContext.logMessage(LogSeverity.DEBUG, errorMsg);	
-			throw e;
-		}
+//		catch(EndpointException e)
+//		{
+//			String errorMsg = String.format("TokenMgt: did not fetch entry, DN= %s, error: %s. Retrying...", dn, e.getMessage());
+//			this.serverContext.logMessage(LogSeverity.DEBUG, errorMsg);	
+//			throw e;
+//		}
 		catch (Exception e) {
 			String errorMsg = String.format("TokenMgt: did not fetch entry, DN= %s, error: %s", dn, e.getMessage());
 			this.serverContext.logMessage(LogSeverity.DEBUG, errorMsg);			
@@ -423,11 +418,6 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 				
 				this.serverContext.logMessage(LogSeverity.DEBUG,
 						String.format("TokenMgt: adding change item, DN=%s", searchEntry.getDN()));
-
-				if(processedDNCache.contains(searchEntry.getDN()))
-					continue;
-				else
-					processedDNCache.add(searchEntry.getDN());
 				
 				ChangeRecord.Builder bldr = new ChangeRecord.Builder(ChangeType.MODIFY, searchEntry.getDN());
 
