@@ -324,7 +324,7 @@ dsconfig set-scim-resource-type-prop --type-name ADRTokenInstance --set "create-
 
 # [03/Jul/2020:06:44:15.257 +0000] conn=10913 op=258 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
 # Undo command: dsconfig delete-connection-criteria --criteria-name "Exclude Data Sync User Connection Criteria"
-dsconfig create-connection-criteria --criteria-name "Exclude Data Sync User Connection Criteria" --type simple --add "included-user-base-dn:cn=SCIM2 Servlet" --set "excluded-user-base-dn:cn=Ping Data Sync,cn=Root DNs,cn=config"
+dsconfig create-connection-criteria --criteria-name "Exclude Data Sync User Connection Criteria" --type simple --set "included-user-base-dn:cn=SCIM2 Servlet" --set "excluded-user-base-dn:cn=Ping Data Sync,cn=Root DNs,cn=config"
 
 # [03/Jul/2020:06:44:33.692 +0000] conn=10913 op=284 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.27.0.2 to=172.27.0.4
 # Undo command: dsconfig set-request-criteria-prop --criteria-name TokenMgtSearchCriteria --remove "connection-criteria:Exclude Data Sync User Connection Criteria"
