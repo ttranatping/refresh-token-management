@@ -32,7 +32,7 @@ public class TokenMgtHelper {
 					keystoreFileLocation, keystoreRootCAFileLocation, keystorePassword, "JKS", isIgnoreSSLErrors,
 					30000);
 		} catch (Exception e1) {
-			throw new Exception("Could not exchange code for access token - unhandled exception", e1);
+			throw new EndpointException(PostStepResult.RETRY_OPERATION_LIMITED, String.format("Retry operation: Could not exchange code for access token - JSON parse error: %s", e1.getMessage()), e1);
 		}
 
 		if (tokenRespObj.getStatusCode() == 401 || tokenRespObj.getStatusCode() == 403 || tokenRespObj.getStatusCode() == 400)
