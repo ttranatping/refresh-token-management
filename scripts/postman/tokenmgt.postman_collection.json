@@ -344,7 +344,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "{\"active\":true, \"sub\":\"xxx\", \"client_id\":\"xxx\", \"scope\":\"adr-{{tenant}}-write\"}",
+									"value": "{\"active\":true, \"sub\":\"xxx\", \"client_id\":\"xxx\", \"scope\":\"adr-tenant1-write\"}",
 									"type": "string"
 								}
 							]
@@ -362,12 +362,10 @@
 							"raw": "{\n    \"client_assertion_aud\": \"{{dh-idp-host}}\",\n    \"client_assertion_jwk\": {{software-jwks-private-raw}},\n    \"client_id\": \"{{dcrClientId}}\",\n    \"token_endpoint\": \"{{dh-idp-host}}{{dh-idp-token-endpoint}}\",\n    \"tenant\": \"{{tenant}}\",\n    \"schemas\": [\n        \"urn:pingidentity:adr:config\"\n    ]\n}"
 						},
 						"url": {
-							"raw": "https://localhost:1443/scim/v2/adr-config",
-							"protocol": "https",
+							"raw": "{{dr-token-mgt-host}}/scim/v2/adr-config",
 							"host": [
-								"localhost"
+								"{{dr-token-mgt-host}}"
 							],
-							"port": "1443",
 							"path": [
 								"scim",
 								"v2",
@@ -403,7 +401,7 @@
 			"protocolProfileBehavior": {}
 		},
 		{
-			"name": "2 - Authenticate and get first access_token",
+			"name": "2 - Authenticate and create access_token",
 			"item": [
 				{
 					"name": "S002.T001.001 - Download Private Key",
@@ -832,12 +830,10 @@
 							}
 						},
 						"url": {
-							"raw": "https://localhost:1443/scim/v2/adr-token",
-							"protocol": "https",
+							"raw": "{{dr-token-mgt-host}}/scim/v2/adr-token",
 							"host": [
-								"localhost"
+								"{{dr-token-mgt-host}}"
 							],
-							"port": "1443",
 							"path": [
 								"scim",
 								"v2",
@@ -873,15 +869,72 @@
 			"protocolProfileBehavior": {}
 		},
 		{
-			"name": "3 - Retrieve latest access_token then call API",
+			"name": "3 - Retrieve access_token list then call API",
 			"item": [
 				{
-					"name": "Get latest Access Token",
+					"name": "Get all access tokens",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
-								"id": "bc41ae9f-e8d9-4d77-b561-d28b82daab0e",
+								"id": "5038083b-9115-40a0-b7bd-0dba54adbcb7",
+								"exec": [
+									"pm.test(\"Validate response status=200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Validate Resources is available\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.expect(response).to.have.property('Resources');",
+									"});",
+									"pm.test(\"Set environment variables for next test\", function () {",
+									"    var response = pm.response.json();",
+									"    pm.environment.set(\"consent-request-id\", response.Resources[0].id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{\"active\":true, \"sub\":\"xxx\", \"client_id\":\"xxx\", \"scope\":\"adr-{{tenant}}-read\"}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{dr-token-mgt-host}}/scim/v2/adr-token",
+							"host": [
+								"{{dr-token-mgt-host}}"
+							],
+							"path": [
+								"scim",
+								"v2",
+								"adr-token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get first access tokens",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "221b833d-d0ea-4d47-85a4-40dee48c4e17",
 								"exec": [
 									"pm.test(\"Validate response status=200\", function () {",
 									"    pm.response.to.have.status(200);",
@@ -919,22 +972,20 @@
 						"header": [
 							{
 								"key": "Content-Type",
-								"value": "application/json",
-								"type": "text"
+								"type": "text",
+								"value": "application/json"
 							}
 						],
 						"url": {
-							"raw": "https://localhost:1443/scim/v2/adr-token/{{consent-request-reference}}",
-							"protocol": "https",
+							"raw": "{{dr-token-mgt-host}}/scim/v2/adr-token/{{consent-request-id}}",
 							"host": [
-								"localhost"
+								"{{dr-token-mgt-host}}"
 							],
-							"port": "1443",
 							"path": [
 								"scim",
 								"v2",
 								"adr-token",
-								"{{consent-request-reference}}"
+								"{{consent-request-id}}"
 							]
 						}
 					},
@@ -1048,111 +1099,117 @@
 	],
 	"variable": [
 		{
-			"id": "c3f42506-117b-4e3c-8841-1bd1c8ef3f31",
+			"id": "d0edcf29-9dc4-4093-9f3f-7e5b6ae704dd",
 			"key": "cdr-register-testharness-host",
 			"value": "https://mockregister.pingapac.com",
 			"type": "string"
 		},
 		{
-			"id": "df6693e9-a363-45c6-8fe8-1a7de4683b2a",
+			"id": "e4f7e362-c043-4da9-af3e-4142e96b0030",
 			"key": "dh-idp-host",
 			"value": "https://sso.pingapac.com",
 			"type": "string"
 		},
 		{
-			"id": "d605e433-2240-44d5-b292-47a6fc0da03b",
+			"id": "92e82b36-1e8b-4023-b4f3-3003c48a0297",
 			"key": "dh-idp-register-endpoint",
 			"value": "/as/register",
 			"type": "string"
 		},
 		{
-			"id": "f0dc4010-31cf-4b55-8963-7d16c0cdef2b",
+			"id": "8be16413-66ca-4042-bb04-63efac6672f1",
 			"key": "dh-idp-token-endpoint",
 			"value": "/as/token.oauth2",
 			"type": "string"
 		},
 		{
-			"id": "b9d33710-2ff2-486b-a1df-3b9fe13a1014",
+			"id": "ab279e23-205e-4a5a-803c-e959f29902dd",
 			"key": "dh-audience",
 			"value": "https://data-holder",
 			"type": "string"
 		},
 		{
-			"id": "8aadc12f-c45b-48e3-8dd7-6e9ebb0e7856",
+			"id": "d1f71bc1-10a1-439d-a2ab-c8220ca99c90",
 			"key": "pki-basicheader",
 			"value": "Basic cGtpdXNlcjphYmNEMzBmZw==",
 			"type": "string"
 		},
 		{
-			"id": "0f6d8568-6aed-411d-8b07-44802793459d",
+			"id": "afd7614c-9e74-4458-9c1f-ee034b578a34",
 			"key": "default-nonce",
 			"value": "ea18887b-8629-43f2-93e1-4346959fb2ec",
 			"type": "string"
 		},
 		{
-			"id": "f13174b0-8315-44a9-abcb-77eedede6a85",
+			"id": "62763b08-6dbd-40ce-bb6f-e2dffcc43d8c",
 			"key": "default-state",
 			"value": "887bea18-93e1-8629-43f2-59fb2ec43469",
 			"type": "string"
 		},
 		{
-			"id": "5779803e-7127-433d-b5bc-35adcd4166cf",
+			"id": "8ccd58bb-1831-430f-93dd-b4c8f9062142",
 			"key": "dh-idp-authorization-endpoint",
 			"value": "/as/authorization.oauth2",
 			"type": "string"
 		},
 		{
-			"id": "69f193e6-ea64-4f8d-9f16-8219473fae8c",
+			"id": "82104afa-c654-491d-bfcb-96645b3d5d43",
 			"key": "default-redirecturi",
 			"value": "https://httpbin.org/get",
 			"type": "string"
 		},
 		{
-			"id": "89e6eff9-2b06-4eae-a48a-82004469f4a8",
+			"id": "f5e94384-8587-4b47-9b62-14ea6cbbfaf1",
 			"key": "dh-idp-introspect-endpoint",
 			"value": "/as/introspect.oauth2",
 			"type": "string"
 		},
 		{
-			"id": "061851d5-ff9d-456c-8446-b14f80b3754e",
+			"id": "792311bb-759a-4276-93ac-c9b5fdf8e9aa",
 			"key": "dh-api-host",
 			"value": "https://api.pingapac.com/cds-au",
 			"type": "string"
 		},
 		{
-			"id": "4296929c-2258-4bc5-910e-0da567fed9e3",
+			"id": "b745f586-574e-4564-a6dd-bceebb4bb31a",
 			"key": "dh-idp-revocation-endpoint",
 			"value": "/as/revoke_token.oauth2",
 			"type": "string"
 		},
 		{
-			"id": "da138c4f-10bd-45df-8dee-94890ae75c82",
+			"id": "567a8a0a-1e72-4b6d-a98b-1a0ec49bee97",
 			"key": "dh-idp-userinfo-endpoint",
 			"value": "/idp/userinfo.openid",
 			"type": "string"
 		},
 		{
-			"id": "dc1f6e99-d68f-4480-ae0c-60a85de3abb2",
+			"id": "146eef95-a164-4cea-aada-c24ba577a78f",
 			"key": "admin-user-token-read",
 			"value": "{\"active\":true, \"sub\":\"user.0\", \"client_id\":\"xxx\", \"scope\":\"adr-tenant1-read\"}",
 			"type": "string"
 		},
 		{
-			"id": "4bdaa3a2-e079-4871-b02a-7458282d63bf",
+			"id": "6d764ad3-db6d-4361-92e4-cccf21389405",
 			"key": "username",
 			"value": "crn0",
 			"type": "string"
 		},
 		{
-			"id": "b7602d55-8efd-46ec-8ea6-1c4e8ff4cfc2",
+			"id": "00c5f262-5729-4dfa-896b-391fa03baf1e",
 			"key": "admin-user-token-write",
 			"value": "{\"active\":true, \"sub\":\"user.0\", \"client_id\":\"xxx\", \"scope\":\"adr-tenant1-write\"}",
 			"type": "string"
 		},
 		{
-			"id": "658871aa-ba74-490d-a8b7-20f032ff60dc",
+			"id": "963651b5-0aed-48fc-b239-657eb26278cd",
 			"key": "tenant",
 			"value": "tenant1",
+			"type": "string"
+		},
+		{
+			"id": "4edd4b8b-a26d-4430-8a5d-315328496a53",
+			"key": "dr-token-mgt-host",
+			"value": "https://54.70.227.189:1443",
 			"type": "string"
 		}
 	],
