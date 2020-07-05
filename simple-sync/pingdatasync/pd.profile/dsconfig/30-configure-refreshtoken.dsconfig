@@ -31,7 +31,7 @@ dsconfig create-sync-pipe --pipe-name Pipe-RefreshExpiringTokens --set started:t
 
 # [02/Jul/2020:00:16:38.419 +0000] conn=27 op=188 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.21.0.2 to=172.21.0.3
 # Undo command: dsconfig delete-sync-class --pipe-name Pipe-RefreshExpiringTokens --class-name tokenMgt
-dsconfig create-sync-class --pipe-name Pipe-RefreshExpiringTokens --class-name tokenMgt --set auto-mapped-source-attribute:tokenMgtLastStatusError --set auto-mapped-source-attribute:tokenMgtAccessTokenJSON --set auto-mapped-source-attribute:tokenMgtAccessTokenJWT --set auto-mapped-source-attribute:tokenMgtIDTokenJSON --set auto-mapped-source-attribute:tokenMgtIDTokenJWT --set auto-mapped-source-attribute:tokenMgtRefreshToken --set modifies-as-creates:true --set creates-as-modifies:true --set attribute-synchronization-mode:all-attributes 
+dsconfig create-sync-class --pipe-name Pipe-RefreshExpiringTokens --class-name tokenMgt --set auto-mapped-source-attribute:tokenMgtRetryAttempts --set auto-mapped-source-attribute:tokenMgtLastStatusError --set auto-mapped-source-attribute:tokenMgtAccessTokenJSON --set auto-mapped-source-attribute:tokenMgtAccessTokenJWT --set auto-mapped-source-attribute:tokenMgtIDTokenJSON --set auto-mapped-source-attribute:tokenMgtIDTokenJWT --set auto-mapped-source-attribute:tokenMgtRefreshToken --set modifies-as-creates:true --set creates-as-modifies:true --set attribute-synchronization-mode:all-attributes 
 
 
 
