@@ -325,10 +325,21 @@ public final class TokenMgtExchangeCodePlugin extends ScriptedPlugin {
 					tokenMgtClientId, tokenMgtRedirectURI, tokenMgtConfigClientAssertionAudience, tokenMgtExpectedNonce,
 					tokenMgtConfigClientAssertionJWK, tokenMgtConfigTokenEndpoint, this.isIgnoreSSLErrors);
 		} catch (Exception e) {
-			Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
-					"Error processing callback: " + e.getMessage());
-			entry.addAttribute(tokenMgtLastStatusError);
-			return PreParsePluginResult.SUCCESS;
+
+			//try 1 more time
+			
+			try {
+				processCallback(entry, keystoreFileLocation, keystoreRootCAFileLocation, keystorePassword, tokenMgtAuthCode,
+						tokenMgtClientId, tokenMgtRedirectURI, tokenMgtConfigClientAssertionAudience, tokenMgtExpectedNonce,
+						tokenMgtConfigClientAssertionJWK, tokenMgtConfigTokenEndpoint, this.isIgnoreSSLErrors);
+			} catch (Exception e1) {
+				
+				Attribute tokenMgtLastStatusError = new Attribute("tokenMgtLastStatusError",
+						"Error processing callback: " + e.getMessage());
+				entry.addAttribute(tokenMgtLastStatusError);
+				return PreParsePluginResult.SUCCESS;
+				
+			}
 		}
 
 		return PreParsePluginResult.SUCCESS;

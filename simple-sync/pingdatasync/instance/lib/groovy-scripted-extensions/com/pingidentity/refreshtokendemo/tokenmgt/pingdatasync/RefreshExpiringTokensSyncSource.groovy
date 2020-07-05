@@ -68,7 +68,9 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 {
 	private static final String DEFAULT_PINGDIRECTORY_EXTERNALSERVER = "pingdirectory";
 	private static final long DEFAULT_ADVANCED_NOTICE = 120L;
-	private static final String CONST_DEFAULT_FILTER = "(&(tokenMgtRefreshToken=*)(!(tokenMgtLastStatusError=*))(%s:jsonObjectFilterExtensibleMatch:={ \"filterType\" : \"lessThan\", \"field\" : \"exp\", \"value\" : %s }))";
+	private static final int DEFAULT_RETRYATTEMPTS = 3;
+	private static final String CONST_DEFAULT_FILTER = "(&(tokenMgtRefreshToken=*)(tokenMgtRetryAttempts<%s)(%s:jsonObjectFilterExtensibleMatch:={ \"filterType\" : \"lessThan\", \"field\" : \"exp\", \"value\" : %s }))";
+	
 	private static final String CONFIG_REFRESH_ADVANCED_NOTICE_SECONDS = "refresh-advanced-notice-seconds";
 	private static final String CONFIG_PINGDIRECTORY_EXTERNALSERVER_NAME = "pingdirectory-external-server-id";
 	private static final String CONFIG_MTLS_KEYSTORE_CA_LOCATION = "mtls-keystore-ca-location";
@@ -76,6 +78,7 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 	private static final String CONFIG_MTLS_KEYSTORE_LOCATION = "mtls-keystore-location";
 
 	private static final String CONFIG_IGNORE_SSL_ERRORS = "ignore-ssl-errors";
+	private static final String CONFIG_RETRY_ATTEMPTS = "retry-attempts";
 	
 	// The server context which can be used for obtaining the server state,
 	// logging, etc.
@@ -85,6 +88,7 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 
 	private int initialConnections = 5;
 	private int maxConnections = 20;
+	private int retryAttempts = DEFAULT_RETRYATTEMPTS;
 
 	private Long refreshAdvancePeriodSeconds = DEFAULT_ADVANCED_NOTICE;
 
@@ -104,6 +108,16 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 
 	@Override
 	public void defineConfigArguments(final ArgumentParser parser) throws ArgumentException {
+
+		Character shortIdentifier_r = 'r';
+		String longIdentifier_r = CONFIG_RETRY_ATTEMPTS;
+		boolean required_r = true;
+		int maxOccurrences_r = 1;
+		String placeholder_r = String.valueOf(DEFAULT_RETRYATTEMPTS);
+		String description_r = "Advanced notice for refreshing a token before it expires.";
+
+		parser.addArgument(new StringArgument(shortIdentifier_r, longIdentifier_r, required_r, maxOccurrences_r,
+				placeholder_r, description_r));
 
 		Character shortIdentifier_a = 'a';
 		String longIdentifier_a = CONFIG_REFRESH_ADVANCED_NOTICE_SECONDS;
@@ -171,6 +185,13 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 	public void initializeSyncSource(final SyncServerContext serverContext, final SyncSourceConfig config,
 			final ArgumentParser parser) {
 		this.serverContext = serverContext;
+
+		final StringArgument arg0 = (StringArgument) parser.getNamedArgument(CONFIG_RETRY_ATTEMPTS);
+		try {
+			this.retryAttempts = Integer.parseInt(arg0.getValue());
+		} catch (NumberFormatException e) {
+			this.retryAttempts = DEFAULT_RETRYATTEMPTS;
+		}
 
 		final StringArgument arg1 = (StringArgument) parser.getNamedArgument(CONFIG_REFRESH_ADVANCED_NOTICE_SECONDS);
 		try {
@@ -323,12 +344,12 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 			return returnEntry;
 
 		}
-		catch(EndpointException e)
-		{
-			String errorMsg = String.format("TokenMgt: did not fetch entry, DN= %s, error: %s. Retrying...", dn, e.getMessage());
-			this.serverContext.logMessage(LogSeverity.DEBUG, errorMsg);	
-			throw e;
-		}
+//		catch(EndpointException e)
+//		{
+//			String errorMsg = String.format("TokenMgt: did not fetch entry, DN= %s, error: %s. Retrying...", dn, e.getMessage());
+//			this.serverContext.logMessage(LogSeverity.DEBUG, errorMsg);	
+//			throw e;
+//		}
 		catch (Exception e) {
 			String errorMsg = String.format("TokenMgt: did not fetch entry, DN= %s, error: %s", dn, e.getMessage());
 			this.serverContext.logMessage(LogSeverity.DEBUG, errorMsg);			
@@ -358,6 +379,14 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 		addPropertyToError(record, entry, "tokenMgtAccessTokenJWT");
 		addPropertyToError(record, entry, "tokenMgtIDTokenJSON");
 		addPropertyToError(record, entry, "tokenMgtIDTokenJWT");
+
+		int retryAttempts = 0;
+		
+		if(record.getProperty("tokenMgtRetryAttempts") != null)
+			retryAttempts = Integer.parseInt(record.getProperty("tokenMgtRetryAttempts").toString())+1;
+		
+		Attribute tokenMgtRetryAttempts = new Attribute("tokenMgtRetryAttempts", String.valueOf(retryAttempts));
+		entry.addAttribute(tokenMgtRetryAttempts);
 	}
 	
 	private void addPropertyToError(ChangeRecord record, final Entry entry, String propName)
@@ -378,16 +407,17 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 
 		Long compareEpochSeconds = Instant.now().getEpochSecond() + refreshAdvancePeriodSeconds;
 
-		String filter = String.format(CONST_DEFAULT_FILTER, "tokenMgtAccessTokenJSON", compareEpochSeconds);
+		String filter = String.format(CONST_DEFAULT_FILTER, retryAttempts, "tokenMgtAccessTokenJSON", compareEpochSeconds);
 		
 		this.serverContext.logMessage(LogSeverity.DEBUG, String.format("TokenMgt: filter=%s", filter));
 		SearchResult searchResult = null;
-		String [] attributes = new String[5];
+		String [] attributes = new String[6];
 		attributes[0] = "tokenMgtRefreshToken";
 		attributes[1] = "tokenMgtAccessTokenJSON";
 		attributes[2] = "tokenMgtAccessTokenJWT";
 		attributes[3] = "tokenMgtIDTokenJSON";
 		attributes[4] = "tokenMgtIDTokenJWT";
+		attributes[5] = "tokenMgtRetryAttempts";
 		
 		try {
 			searchResult = ldapConnection.search(baseDN, SearchScope.SUB, filter, attributes);
@@ -434,6 +464,8 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 					bldr.addProperty("tokenMgtIDTokenJSON", searchEntry.getAttributeValue("tokenMgtIDTokenJSON"));
 				if (searchEntry.hasAttribute("tokenMgtIDTokenJWT"))
 					bldr.addProperty("tokenMgtIDTokenJWT", searchEntry.getAttributeValue("tokenMgtIDTokenJWT"));
+				if (searchEntry.hasAttribute("tokenMgtRetryAttempts"))
+					bldr.addProperty("tokenMgtRetryAttempts", searchEntry.getAttributeValue("tokenMgtRetryAttempts"));
 
 				ChangeRecord record = bldr.build();
 

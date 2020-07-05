@@ -159,7 +159,9 @@ public class MASSLClient {
 
 		Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
 				.register("http", PlainConnectionSocketFactory.getSocketFactory())
-				.register("https", new SSLConnectionSocketFactory(sslCtxBuild)).build();
+				.register("https",
+						new SSLConnectionSocketFactory(sslCtxBuild, httpsProtocolSupport, null, hostnameVerifier))
+				.build();
 
 		HttpClientContext clientContext = HttpClientContext.create();
 		clientContext.setAttribute("http.socket-factory-registry", socketFactoryRegistry);
