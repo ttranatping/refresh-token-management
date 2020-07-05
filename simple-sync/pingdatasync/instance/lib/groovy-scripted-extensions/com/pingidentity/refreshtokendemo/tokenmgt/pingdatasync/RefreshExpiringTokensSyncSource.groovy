@@ -69,7 +69,7 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 	private static final String DEFAULT_PINGDIRECTORY_EXTERNALSERVER = "pingdirectory";
 	private static final long DEFAULT_ADVANCED_NOTICE = 120L;
 	private static final int DEFAULT_RETRYATTEMPTS = 3;
-	private static final String CONST_DEFAULT_FILTER = "(&(tokenMgtRefreshToken=*)(tokenMgtRetryAttempts<%s)(%s:jsonObjectFilterExtensibleMatch:={ \"filterType\" : \"lessThan\", \"field\" : \"exp\", \"value\" : %s }))";
+	private static final String CONST_DEFAULT_FILTER = "(&(tokenMgtRefreshToken=*)(|(!(tokenMgtRetryAttempts=*))(tokenMgtRetryAttempts<=%s))(%s:jsonObjectFilterExtensibleMatch:={ \"filterType\" : \"lessThan\", \"field\" : \"exp\", \"value\" : %s }))";
 	
 	private static final String CONFIG_REFRESH_ADVANCED_NOTICE_SECONDS = "refresh-advanced-notice-seconds";
 	private static final String CONFIG_PINGDIRECTORY_EXTERNALSERVER_NAME = "pingdirectory-external-server-id";
