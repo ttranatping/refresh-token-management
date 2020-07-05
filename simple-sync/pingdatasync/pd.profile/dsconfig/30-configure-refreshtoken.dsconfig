@@ -17,7 +17,7 @@ dsconfig create-sync-class --pipe-name Pipe-ProcessExpiringAccessTokens --class-
 
 # [02/Jul/2020:00:13:48.647 +0000] conn=27 op=73 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.21.0.2 to=172.21.0.3
 # Undo command: dsconfig delete-sync-source --source-name Source-RefreshExpiringAccessTokens
-dsconfig create-sync-source --source-name Source-RefreshExpiringAccessTokens --type groovy-scripted --set script-argument:refresh-advanced-notice-seconds=420 --set script-argument:pingdirectory-external-server-id=pingdirectory --set script-argument:mtls-keystore-ca-location=/tmp/server-profile/scripts/postman/cert/public.cer --set script-argument:mtls-keystore-location=/tmp/server-profile/scripts/postman/cert/network.p12 --set 'script-argument:mtls-keystore-password=P@ssword1' --set script-class:com.pingidentity.refreshtokendemo.tokenmgt.pingdatasync.RefreshExpiringTokensSyncSource
+dsconfig create-sync-source --source-name Source-RefreshExpiringAccessTokens --type groovy-scripted --set script-argument:refresh-advanced-notice-seconds=420 --set script-argument:retry-attempts=3 --set script-argument:pingdirectory-external-server-id=pingdirectory --set script-argument:mtls-keystore-ca-location=/tmp/server-profile/scripts/postman/cert/public.cer --set script-argument:mtls-keystore-location=/tmp/server-profile/scripts/postman/cert/network.p12 --set 'script-argument:mtls-keystore-password=P@ssword1' --set script-class:com.pingidentity.refreshtokendemo.tokenmgt.pingdatasync.RefreshExpiringTokensSyncSource
 
 
 # [02/Jul/2020:00:14:43.915 +0000] conn=27 op=109 dn='cn=Directory Manager,cn=Root DNs,cn=config' authtype=[Simple] from=172.21.0.2 to=172.21.0.3
