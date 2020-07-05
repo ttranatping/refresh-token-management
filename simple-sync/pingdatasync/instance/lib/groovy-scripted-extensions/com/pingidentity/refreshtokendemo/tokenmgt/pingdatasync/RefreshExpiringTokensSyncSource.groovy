@@ -340,6 +340,8 @@ public final class RefreshExpiringTokensSyncSource extends ScriptedSyncSource
 						String.format("TokenMgt: refreshed token", key, value));
 				returnEntry.addAttribute(key, refreshTokenResultMap.get(key));
 			}
+			
+			returnEntry.addAttribute("tokenMgtRetryAttempts", "0");
 
 			return returnEntry;
 
